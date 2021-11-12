@@ -1,0 +1,3 @@
+﻿  game.cpp
+D:\Learning\Programming\GameDev\MyGame\FirstProject\SpriteProject\game.cpp(25,12): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  SpriteProject.vcxproj -> D:\Learning\Programming\GameDev\MyGame\FirstProject\Debug\SpriteProject.exe
