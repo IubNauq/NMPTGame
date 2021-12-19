@@ -66,6 +66,22 @@ MAP map_area3_scene1;//1
 MAP map_area3_scene2;//2
 MAP map_dungeon;//3
 int mapid;
+LPDIRECT3DTEXTURE9 tilemap8;
+LPDIRECT3DTEXTURE9 tilemap9;
+LPDIRECT3DTEXTURE9 tilemap20;
+LPDIRECT3DTEXTURE9 tilemap21;
+LPDIRECT3DTEXTURE9 tilemap10;
+LPDIRECT3DTEXTURE9 tilemap22;
+
+LPDIRECT3DTEXTURE9 tilemap11;
+LPDIRECT3DTEXTURE9 tilemap12;
+LPDIRECT3DTEXTURE9 tilemap23;
+LPDIRECT3DTEXTURE9 tilemap24;
+LPDIRECT3DTEXTURE9 tilemap35;
+LPDIRECT3DTEXTURE9 tilemap36;
+
+int arr[] = { 12,28,76,100 };
+int brr[] = { 20,60,92 };
 
 CAM cam;
 
@@ -258,7 +274,7 @@ int Game_Init(HWND hwnd)
 	ifs2.close();
 
 	// Dungeon
-	for (int i = 0; i < 76; i++)
+	for (int i = 0; i < 78; i++)
 	{
 		sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon%d.png", i + 1);
 		map_dungeon.image[i] = LoadSurface(s, NULL);
@@ -277,6 +293,31 @@ int Game_Init(HWND hwnd)
 	}
 	ifs1.close();
 
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon8.png");
+	tilemap8 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon9.png");
+	tilemap9 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon20.png");
+	tilemap20 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon21.png");
+	tilemap21 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon10.png");
+	tilemap10 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon22.png");
+	tilemap22 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon11.png");
+	tilemap11 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon12.png");
+	tilemap12 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon23.png");
+	tilemap23 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon24.png");
+	tilemap24 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon35.png");
+	tilemap35 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Dungeon tile set\\Dungeon36.png");
+	tilemap36 = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
 
 #pragma endregion
 
@@ -2117,6 +2158,8 @@ void Game_Run(HWND hwnd)
 			}
 
 #pragma endregion
+
+
 		}
 		else if (mapid == 1 || mapid == 2)
 		{
@@ -2248,7 +2291,7 @@ void Game_Run(HWND hwnd)
 						D3DCOLOR_XRGB(255, 255, 255));
 				}
 			}
-			
+
 			// Draw item
 			for (int i = 0; i < items_area3_scene1.size(); i++)
 			{
@@ -2269,7 +2312,7 @@ void Game_Run(HWND hwnd)
 					&positionitem,
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
-		
+
 #pragma endregion
 		}
 
@@ -2433,6 +2476,365 @@ void Game_Run(HWND hwnd)
 
 		d3ddev->StretchRect(map.image[map.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
 			&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
+#pragma endregion
+
+#pragma region Map cover player
+
+		if (mapid == 1)
+		{
+			//
+		}
+		else if (mapid == 2)
+		{
+			//
+		}
+		else if (mapid == 3)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				D3DXVECTOR3 positiontile1((float)32 * 6 - cam.x, (float)32 * arr[i] - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap8,
+					NULL, NULL,
+					&positiontile1,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile2((float)32 * 6 - cam.x, (float)32 * (arr[i] + 1) - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap20,
+					NULL, NULL,
+					&positiontile2,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				for (int j = 7; j < 14; j++)
+				{
+					D3DXVECTOR3 positiontile3((float)32 * j - cam.x, (float)32 * arr[i] - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap9,
+						NULL, NULL,
+						&positiontile3,
+						D3DCOLOR_XRGB(255, 255, 255));
+
+					D3DXVECTOR3 positiontile4((float)32 * j - cam.x, (float)32 * (arr[i] + 1) - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap21,
+						NULL, NULL,
+						&positiontile4,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+
+
+			}
+
+			for (int i = 0; i < 3; i++)
+			{
+				D3DXVECTOR3 positiontile1((float)32 * 9 - cam.x, (float)32 * brr[i] - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap10,
+					NULL, NULL,
+					&positiontile1,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile2((float)32 * 9 - cam.x, (float)32 * (brr[i] + 1) - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap22,
+					NULL, NULL,
+					&positiontile2,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				for (int j = 2; j < 9; j++)
+				{
+					D3DXVECTOR3 positiontile3((float)32 * j - cam.x, (float)32 * brr[i] - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap9,
+						NULL, NULL,
+						&positiontile3,
+						D3DCOLOR_XRGB(255, 255, 255));
+					D3DXVECTOR3 positiontile4((float)32 * j - cam.x, (float)32 * (brr[i] + 1) - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap21,
+						NULL, NULL,
+						&positiontile4,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+			}
+
+			D3DXVECTOR3 positiontile1((float)32 * 5 - cam.x, (float)32 * 44 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap10,
+				NULL, NULL,
+				&positiontile1,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile2((float)32 * 5 - cam.x, (float)32 * 45 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap22,
+				NULL, NULL,
+				&positiontile2,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile3((float)32 * 10 - cam.x, (float)32 * 44 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap8,
+				NULL, NULL,
+				&positiontile3,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile4((float)32 * 10 - cam.x, (float)32 * 45 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap20,
+				NULL, NULL,
+				&positiontile4,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			for (int i = 2; i < 5; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 44 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 45 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 11; i < 14; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 44 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 45 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			D3DXVECTOR3 positiontile7((float)32 * 6 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap10,
+				NULL, NULL,
+				&positiontile7,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile8((float)32 * 6 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap22,
+				NULL, NULL,
+				&positiontile8,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile9((float)32 * 9 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap8,
+				NULL, NULL,
+				&positiontile9,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile10((float)32 * 9 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap20,
+				NULL, NULL,
+				&positiontile10,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			for (int i = 2; i < 6; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 108 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 109 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 10; i < 14; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 108 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 109 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			D3DXVECTOR3 positiontile11((float)32 * 7 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap11,
+				NULL, NULL,
+				&positiontile11,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile12((float)32 * 8 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap12,
+				NULL, NULL,
+				&positiontile12,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile13((float)32 * 7 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap23,
+				NULL, NULL,
+				&positiontile13,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile14((float)32 * 8 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap24,
+				NULL, NULL,
+				&positiontile14,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile15((float)32 * 7 - cam.x, (float)32 * 110 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap35,
+				NULL, NULL,
+				&positiontile15,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile16((float)32 * 8 - cam.x, (float)32 * 110 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap36,
+				NULL, NULL,
+				&positiontile16,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			for (int i = 2; i < 30; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 123 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 124 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			D3DXVECTOR3 positiontile17((float)32 * 23 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap11,
+				NULL, NULL,
+				&positiontile17,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile18((float)32 * 24 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap12,
+				NULL, NULL,
+				&positiontile18,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile19((float)32 * 23 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap23,
+				NULL, NULL,
+				&positiontile19,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile20((float)32 * 24 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap24,
+				NULL, NULL,
+				&positiontile20,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile21((float)32 * 23 - cam.x, (float)32 * 110 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap35,
+				NULL, NULL,
+				&positiontile21,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile22((float)32 * 24 - cam.x, (float)32 * 110 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap36,
+				NULL, NULL,
+				&positiontile22,
+				D3DCOLOR_XRGB(255, 255, 255));
+		
+			D3DXVECTOR3 positiontile23((float)32 * 22 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap10,
+				NULL, NULL,
+				&positiontile23,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile24((float)32 * 22 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap22,
+				NULL, NULL,
+				&positiontile24,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile25((float)32 * 25 - cam.x, (float)32 * 108 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap8,
+				NULL, NULL,
+				&positiontile25,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile26((float)32 * 25 - cam.x, (float)32 * 109 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap20,
+				NULL, NULL,
+				&positiontile26,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			for (int i = 18; i < 22; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 108 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 109 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 26; i < 30; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 108 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 109 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+		}
+
 #pragma endregion
 
 		sprite_handler->End();

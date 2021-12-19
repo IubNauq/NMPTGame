@@ -1,6 +1,6 @@
 #include "map.h"
 
-vector<int> solid_dungeon = { 5,8,9,10,16,17,18,19,20,21,22,32,34 };
+vector<int> solid_dungeon = { 5,8,9,10,16,17,18,19,20,21,22,32,33,34,45 };
 vector<int> trap_dungeon = { 39 };
 bool MAP::isSolid_Dungeon(int noColumn, int noRow)
 {
