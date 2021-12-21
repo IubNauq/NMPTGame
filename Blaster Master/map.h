@@ -20,6 +20,7 @@ public:
 	// Dungeon
 	bool isSolid_Dungeon(int noColumn, int noRow);
 	bool isTrap_Dungeon(int noColumn, int noRow);
+	bool isBreakable_Wall(int noColumn, int noRow);
 
 	bool jason_collide_right(SPRITE s);
 	bool jason_collide_left(SPRITE s);
@@ -50,6 +51,7 @@ public:
 
 	bool sophia_collide_tele1(SOPHIA sophia);
 	bool sophia_collide_tele2(SOPHIA sophia);
+	bool sophia_collide_tele3(SOPHIA sophia);
 };
 
 #endif

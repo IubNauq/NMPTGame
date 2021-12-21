@@ -1,6 +1,6 @@
 #include "map.h"
 
-vector<int> solid_dungeon = { 5,8,9,10,16,17,18,19,20,21,22,32,33,34,45 };
+vector<int> solid_dungeon = { 5,8,9,10,16,17,18,19,20,21,22,32,33,34,45,70 };
 vector<int> trap_dungeon = { 39 };
 bool MAP::isSolid_Dungeon(int noColumn, int noRow)
 {
@@ -21,6 +21,16 @@ bool MAP::isTrap_Dungeon(int noColumn, int noRow)
 		{
 			return true;
 		}
+	}
+	return false;
+}
+
+bool MAP::isBreakable_Wall(int noColumn, int noRow)
+{
+	if (matrix[noRow][noColumn] == 70)
+	{
+		matrix[noRow][noColumn] = 79;
+		return true;
 	}
 	return false;
 }
@@ -119,6 +129,10 @@ bool MAP::jason_bullet_collide_right(BULLET bullet)
 {
 	for (int i = (bullet.y + bullet.height / 2) / TILE_SIZE; i <= (bullet.y + bullet.height) / TILE_SIZE; i++)
 	{
+		if (isBreakable_Wall((bullet.x + bullet.width) / TILE_SIZE, i))
+		{
+			return true;
+		}
 		if (isSolid_Dungeon((bullet.x + bullet.width) / TILE_SIZE, i))
 		{
 			return true;
@@ -130,6 +144,10 @@ bool MAP::jason_bullet_collide_left(BULLET bullet)
 {
 	for (int i = (bullet.y + bullet.height / 2) / TILE_SIZE; i <= (bullet.y + bullet.height) / TILE_SIZE; i++)
 	{
+		if (isBreakable_Wall((bullet.x) / TILE_SIZE, i))
+		{
+			return true;
+		}
 		if (isSolid_Dungeon((bullet.x) / TILE_SIZE, i))
 		{
 			return true;
@@ -141,6 +159,10 @@ bool MAP::jason_bullet_collide_up(BULLET bullet)
 {
 	for (int j = bullet.x / TILE_SIZE; j <= (bullet.x + bullet.width) / TILE_SIZE; j++)
 	{
+		if (isBreakable_Wall(j, bullet.y / TILE_SIZE))
+		{
+			return true;
+		}
 		if (isSolid_Dungeon(j, bullet.y / TILE_SIZE))
 		{
 			return true;
@@ -152,6 +174,10 @@ bool MAP::jason_bullet_collide_down(BULLET bullet)
 {
 	for (int j = bullet.x / TILE_SIZE; j <= (bullet.x + bullet.width) / TILE_SIZE; j++)
 	{
+		if (isBreakable_Wall(j, (bullet.y + bullet.height) / TILE_SIZE))
+		{
+			return true;
+		}
 		if (isSolid_Dungeon(j, (bullet.y + bullet.height) / TILE_SIZE))
 		{
 			return true;
@@ -160,7 +186,7 @@ bool MAP::jason_bullet_collide_down(BULLET bullet)
 	return false;
 }
 
-vector<int> solid_area3 = { 6,15,17,21,25,29,76,77,84,85,86 };
+vector<int> solid_area3 = { 6,15,76,77,84,85,86 };
 bool MAP::isSolid_Area3(int noColumn, int noRow)
 {
 	for (int i = 0; i < solid_area3.size(); i++)
@@ -254,13 +280,19 @@ bool MAP::sophia_bullet_collide_up(BULLET bullet)
 
 bool MAP::sophia_collide_tele1(SOPHIA sophia)
 {
-	if (sophia.x < 160 && sophia.y > 736)
+	if (sophia.x < 64 && sophia.y > 736)
 		return true;
 	return false;
 }
 bool MAP::sophia_collide_tele2(SOPHIA sophia)
 {
-	if (sophia.x > 2368 && sophia.y > 768)
+	if (sophia.x > 2464 && sophia.y > 768)
+		return true;
+	return false;
+}
+bool MAP::sophia_collide_tele3(SOPHIA sophia)
+{
+	if (sophia.x > 384 && sophia.y > 320)
 		return true;
 	return false;
 }

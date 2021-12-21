@@ -58,3 +58,20 @@ void SOPHIA::move_right_up()
 	direction = 68;
 	movex = 4;
 }
+
+bool SOPHIA::small_jason_collide_sophia(SOPHIA sophia)
+{
+	int sophiatop = sophia.y;
+	int sophiabottom = sophia.y + sophia.height;
+	int sophialeft = sophia.x;
+	int sophiaright = sophia.x + sophia.width;
+
+	int spritetop = y;
+	int spritebottom = y + height;
+	int spriteleft = x;
+	int spriteright = x + width;
+
+	if (sophiatop < spritebottom && sophiabottom > spritetop && sophiaright > spriteleft && sophialeft < spriteright)
+		return true;
+	return false;
+}

@@ -6,6 +6,7 @@ public:
 	int x, y;
 	int width, height;
 	int movex, movey;
+	int curframe, lastframe;
 	int animdelay, animcount;
 	int direction;	//  4: left, 6: right, 48: left-up, 68: right-up
 	int hp;
@@ -25,6 +26,8 @@ public:
 	void move_right();
 	void move_left_up();
 	void move_right_up();
+
+	bool small_jason_collide_sophia(SOPHIA sophia);
 };
 
 #endif
