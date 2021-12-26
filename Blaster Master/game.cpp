@@ -1,5 +1,4 @@
 ﻿#include "game.h"
-#include "dxgraphics.h"
 
 LPD3DXSPRITE sprite_handler;
 HRESULT result;
@@ -42,6 +41,11 @@ enemy_eye_gray_image[4];
 LPDIRECT3DTEXTURE9 dungeon_enemy_explosion_image[2];
 vector<SPRITE> dungeon_enemy_explosion;
 
+LPDIRECT3DTEXTURE9 enemy_bug_bullet_image[1];
+vector<BULLET> enemy_bug_bullet;
+LPDIRECT3DTEXTURE9 enemy_cam_bullet_image[1];
+vector<BULLET> enemy_cam_bullet;
+
 // Enemy in Area3
 LPDIRECT3DTEXTURE9 enemy_ball_left_gray_image[3], enemy_ball_right_gray_image[3],
 enemy_globular_gray_image[5],
@@ -56,7 +60,7 @@ vector<SPRITE> Dungeon_Enemy, Area3_Scene1_Enemy, Area3_Scene2_Enemy;
 SPRITE temp;
 
 // Map
-MAP map;
+MAP map_info;
 MAP map_area3_scene1, map_area3_scene2, map_area3_scene3, map_dungeon;
 int mapid; // 1: area3_scene1, 2: area3_scene2, 3: dungeon, 4: area3_scene3
 
@@ -74,12 +78,25 @@ CAM cam;
 
 // Some support variable
 long start = GetTickCount();
-long start_shoot = GetTickCount();
+long char_start_shoot = GetTickCount();
 long char_start_get_hit = GetTickCount();
 long enemy_start_get_hit = GetTickCount();
+long enemy_start_shoot = GetTickCount();
 
 bool flag = 1; // used for jason bullet
 int player; // 0:small jason, 1:sophia, 2:jason, 
+
+GSound* area3_sound, * switch_scene_sound;
+
+GSound* sophia_shoot_sound, * sophia_bullet_explosion_sound,
+* sophia_die_sound, * sophia_got_hit_sound, * sophia_jump_sound,
+* swap_player_sound, * get_item_sound;
+
+GSound* big_jason_shoot_sound, * big_jason_got_hit_sound,
+* small_jason_jump_sound;
+
+GSound* enemy_got_hit_sound, * enemy_die_sound,
+* teeth_arrive_sound, * enemy_bug_shoot_sound, * enemy_cam_shoot_sound;
 
 int Game_Init(HWND hwnd)
 {
@@ -89,6 +106,50 @@ int Game_Init(HWND hwnd)
 	result = D3DXCreateSprite(d3ddev, &sprite_handler);
 	if (result != D3D_OK)
 		return 0;
+
+#pragma region Sound
+	GSoundManager* dsound = new GSoundManager();
+	dsound->Initialize(hwnd, DSSCL_PRIORITY);
+
+	result = dsound->SetPrimaryBufferFormat(2, 22050, 16);
+
+	sprintf_s(s, "Sound\\sophia_shoot.wav");
+	result = dsound->Create(&sophia_shoot_sound, s);
+	sprintf_s(s, "Sound\\area3_sound.wav");
+	result = dsound->Create(&area3_sound, s);
+	sprintf_s(s, "Sound\\sophia_bullet_explosion.wav");
+	result = dsound->Create(&sophia_bullet_explosion_sound, s);
+	sprintf_s(s, "Sound\\sophia_die.wav");
+	result = dsound->Create(&sophia_die_sound, s);
+	sprintf_s(s, "Sound\\sophia_got_hit.wav");
+	result = dsound->Create(&sophia_got_hit_sound, s);
+	sprintf_s(s, "Sound\\sophia_jump.wav");
+	result = dsound->Create(&sophia_jump_sound, s);
+	sprintf_s(s, "Sound\\swap_player.wav");
+	result = dsound->Create(&swap_player_sound, s);
+	sprintf_s(s, "Sound\\get_item.wav");
+	result = dsound->Create(&get_item_sound, s);
+	sprintf_s(s, "Sound\\big_jason_shoot.wav");
+	result = dsound->Create(&big_jason_shoot_sound, s);
+	sprintf_s(s, "Sound\\big_jason_got_hit.wav");
+	result = dsound->Create(&big_jason_got_hit_sound, s);
+	sprintf_s(s, "Sound\\small_jason_jump.wav");
+	result = dsound->Create(&small_jason_jump_sound, s);
+	sprintf_s(s, "Sound\\enemy_got_hit.wav");
+	result = dsound->Create(&enemy_got_hit_sound, s);
+	sprintf_s(s, "Sound\\enemy_die.wav");
+	result = dsound->Create(&enemy_die_sound, s);
+	sprintf_s(s, "Sound\\teeth_arrive.wav");
+	result = dsound->Create(&teeth_arrive_sound, s);
+	sprintf_s(s, "Sound\\switch_scene.wav");
+	result = dsound->Create(&switch_scene_sound, s);
+
+	sprintf_s(s, "Sound\\enemy_bug_shoot.wav");
+	result = dsound->Create(&enemy_bug_shoot_sound, s);
+	sprintf_s(s, "Sound\\enemy_cam_shoot.wav");
+	result = dsound->Create(&enemy_cam_shoot_sound, s);
+
+#pragma endregion
 
 	sprintf_s(s, "Picture\\Items\\P.png");
 	P_item_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 0));
@@ -371,6 +432,15 @@ int Game_Init(HWND hwnd)
 		if (enemy_bug_gray_image[i] == NULL)
 			return 0;
 	}
+	sprintf_s(s, "Picture\\Bullet\\enemy_bug_bullet.png");
+	enemy_bug_bullet_image[0] = LoadTexture(s, D3DCOLOR_XRGB(0, 0, 255));
+	if (enemy_bug_bullet_image[0] == NULL)
+		return 0;
+
+	sprintf_s(s, "Picture\\Bullet\\enemy_cam_bullet.png");
+	enemy_cam_bullet_image[0] = LoadTexture(s, D3DCOLOR_XRGB(0, 0, 255));
+	if (enemy_cam_bullet_image[0] == NULL)
+		return 0;
 
 	for (int i = 0; i < 3; i++)
 	{
@@ -468,13 +538,14 @@ int Game_Init(HWND hwnd)
 #pragma region Parameter
 
 	// Area3 Scene1
-	map = map_area3_scene1;
-	mapid = 1;
+	map_info = map_dungeon;
+	mapid = 3;
 
 	cam.x = 0;
 	cam.y = 32;
 
-	player = 1;
+	/*player = 1;*/
+	player = 2;
 
 #pragma region Parameter of Character
 	sophia.x = 128;
@@ -560,7 +631,7 @@ int Game_Init(HWND hwnd)
 
 #pragma region Parameter of Enemy in Area3 Scene2
 	temp.id = 1;
-	temp.x = 2050;
+	temp.x = 2048;
 	temp.y = 64;
 	temp.width = 36;
 	temp.height = 36;
@@ -1270,6 +1341,11 @@ void Game_Run(HWND hwnd)
 	if (d3ddev == NULL)
 		return;
 
+	if (sophia.hp > 0)
+		area3_sound->Play(0, DSBPLAY_LOOPING);
+	else
+		area3_sound->Stop();
+
 	if (GetTickCount() - start >= 30)
 	{
 		// Tái lập lại thời gian
@@ -1328,10 +1404,13 @@ void Game_Run(HWND hwnd)
 				if (KEY_DOWN(0x43))
 				{
 					if (jason_bullet.size() < 1000)
-						if (GetTickCount() - start_shoot >= 100)
+						if (GetTickCount() - char_start_shoot >= 100)
 						{
+							big_jason_shoot_sound->Reset();
+							big_jason_shoot_sound->Play();
+
 							// Tái lập lại thời gian
-							start_shoot = GetTickCount();
+							char_start_shoot = GetTickCount();
 							BULLET bullet;
 							bullet.up_down = flag;
 
@@ -1389,7 +1468,7 @@ void Game_Run(HWND hwnd)
 				if (KEY_DOWN(VK_LEFT))
 				{
 					jason.move_left();
-					if (!map.jason_collide_left(jason))
+					if (!map_info.jason_collide_left(jason))
 					{
 						jason.x += jason.movex;
 						if (jason.x - cam.x - 32 < SCREEN_HEIGHT / 2 && cam.x > 0 && cam.y >= 3520)
@@ -1399,7 +1478,7 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_RIGHT))
 				{
 					jason.move_right();
-					if (!map.jason_collide_right(jason))
+					if (!map_info.jason_collide_right(jason))
 					{
 						jason.x += jason.movex;
 						if (jason.x - cam.x - 32 > SCREEN_HEIGHT / 2 && jason.x < 768 && cam.y >= 3520)
@@ -1409,7 +1488,7 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_UP))
 				{
 					jason.move_up();
-					if (!map.jason_collide_up(jason))
+					if (!map_info.jason_collide_up(jason))
 					{
 						jason.y += jason.movey;
 						if (cam.y >= 16 && (jason.y - cam.y) < SCREEN_HEIGHT / 2)
@@ -1419,10 +1498,10 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_DOWN))
 				{
 					jason.move_down();
-					if (!map.jason_collide_down(jason))
+					if (!map_info.jason_collide_down(jason))
 					{
 						jason.y += jason.movey;
-						if (cam.y < map.height - SCREEN_HEIGHT - 32 && (jason.y - cam.y) > SCREEN_HEIGHT / 2)
+						if (cam.y < map_info.height - SCREEN_HEIGHT - 32 && (jason.y - cam.y) > SCREEN_HEIGHT / 2)
 							cam.y += jason.movey;
 					}
 				}
@@ -1433,15 +1512,18 @@ void Game_Run(HWND hwnd)
 				}
 
 				// Jason collide with trap
-				if (map.jason_collide_trap_down(jason) ||
-					map.jason_collide_trap_right(jason) ||
-					map.jason_collide_trap_left(jason) ||
-					map.jason_collide_trap_up(jason))
+				if (map_info.jason_collide_trap_down(jason) ||
+					map_info.jason_collide_trap_right(jason) ||
+					map_info.jason_collide_trap_left(jason) ||
+					map_info.jason_collide_trap_up(jason))
 				{
 					if (GetTickCount() - char_start_get_hit >= 500)
 					{
 						char_start_get_hit = GetTickCount();
 						jason.hp -= 1;
+
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
 					}
 				}
 
@@ -1452,10 +1534,10 @@ void Game_Run(HWND hwnd)
 						jason_bullet[i].y < cam.y || jason_bullet[i].y > cam.y + SCREEN_HEIGHT)
 						jason_bullet.erase(jason_bullet.begin() + i);
 
-					else if (map.jason_bullet_collide_right(jason_bullet[i]) ||
-						map.jason_bullet_collide_left(jason_bullet[i]) ||
-						map.jason_bullet_collide_up(jason_bullet[i]) ||
-						map.jason_bullet_collide_down(jason_bullet[i]))
+					else if (map_info.jason_bullet_collide_right(jason_bullet[i]) ||
+						map_info.jason_bullet_collide_left(jason_bullet[i]) ||
+						map_info.jason_bullet_collide_up(jason_bullet[i]) ||
+						map_info.jason_bullet_collide_down(jason_bullet[i]))
 					{
 						SPRITE ex_temp;
 						ex_temp.x = jason_bullet[i].x;
@@ -1465,6 +1547,9 @@ void Game_Run(HWND hwnd)
 						ex_temp.animcount = 0;
 						ex_temp.animdelay = 2;
 						explosion.push_back(ex_temp);
+
+						sophia_bullet_explosion_sound->Reset();
+						sophia_bullet_explosion_sound->Play();
 					}
 				}
 
@@ -1495,6 +1580,9 @@ void Game_Run(HWND hwnd)
 						items_dungeon.erase(items_dungeon.begin() + i);
 						if (jason.hp < 8)
 							jason.hp += 1;
+
+						get_item_sound->Reset();
+						get_item_sound->Play();
 					}
 				}
 			}
@@ -1535,6 +1623,9 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					jason.hp--;
+
+					big_jason_got_hit_sound->Reset();
+					big_jason_got_hit_sound->Play();
 				}
 
 				// enemy get hit by bullet
@@ -1544,6 +1635,10 @@ void Game_Run(HWND hwnd)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Dungeon_Enemy[i].hp--;
+
+						enemy_got_hit_sound->Reset();
+						enemy_got_hit_sound->Play();
+
 						if (Dungeon_Enemy[i].hp == 0)
 						{
 							SPRITE ex_temp;
@@ -1568,6 +1663,9 @@ void Game_Run(HWND hwnd)
 							}
 
 							Dungeon_Enemy.erase(Dungeon_Enemy.begin() + i);
+
+							enemy_die_sound->Reset();
+							enemy_die_sound->Play();
 						}
 						jason_bullet.erase(jason_bullet.begin() + j);
 						break;
@@ -1606,23 +1704,23 @@ void Game_Run(HWND hwnd)
 
 						if (Dungeon_Enemy[i].movex > 0)
 						{
-							if (!map.jason_collide_right(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_right(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].x += Dungeon_Enemy[i].movex;
 						}
 						else if (Dungeon_Enemy[i].movex < 0)
 						{
-							if (!map.jason_collide_left(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_left(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].x += Dungeon_Enemy[i].movex;
 						}
 
 						if (Dungeon_Enemy[i].movey > 0)
 						{
-							if (!map.jason_collide_down(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_down(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].y += Dungeon_Enemy[i].movey;
 						}
 						else if (Dungeon_Enemy[i].movey < 0)
 						{
-							if (!map.jason_collide_up(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_up(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].y += Dungeon_Enemy[i].movey;
 						}
 					}
@@ -1668,23 +1766,23 @@ void Game_Run(HWND hwnd)
 
 						if (Dungeon_Enemy[i].movex > 0)
 						{
-							if (!map.jason_collide_right(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_right(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].x += Dungeon_Enemy[i].movex;
 						}
 						else if (Dungeon_Enemy[i].movex < 0)
 						{
-							if (!map.jason_collide_left(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_left(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].x += Dungeon_Enemy[i].movex;
 						}
 
 						if (Dungeon_Enemy[i].movey > 0)
 						{
-							if (!map.jason_collide_down(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_down(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].y += Dungeon_Enemy[i].movey;
 						}
 						else if (Dungeon_Enemy[i].movey < 0)
 						{
-							if (!map.jason_collide_up(Dungeon_Enemy[i]))
+							if (!map_info.jason_collide_up(Dungeon_Enemy[i]))
 								Dungeon_Enemy[i].y += Dungeon_Enemy[i].movey;
 						}
 					}
@@ -1718,6 +1816,107 @@ void Game_Run(HWND hwnd)
 					}
 				}
 
+				// update enemy bullet
+				for (int i = 0; i < enemy_bug_bullet.size(); i++)
+				{
+					enemy_bug_bullet[i].x += enemy_bug_bullet[i].movex;
+					enemy_bug_bullet[i].y += enemy_bug_bullet[i].movey;
+
+					// enemy bullet hit jason
+					if (jason.Bullet_collide(enemy_bug_bullet[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+
+						jason.hp -= 1;
+
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
+				for (int i = 0; i < enemy_cam_bullet.size(); i++)
+				{
+					enemy_cam_bullet[i].y += enemy_cam_bullet[i].movey;
+
+					// enemy bullet hit jason
+					if (jason.Bullet_collide(enemy_cam_bullet[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+
+						jason.hp -= 1;
+
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
+
+				// delete enemy bullet
+				for (int i = 0; i < enemy_bug_bullet.size(); i++)
+				{
+					if (enemy_bug_bullet[i].x <= cam.x || enemy_bug_bullet[i].x >= cam.x + SCREEN_WIDTH ||
+						enemy_bug_bullet[i].y <= cam.y || enemy_bug_bullet[i].y >= cam.y + SCREEN_HEIGHT)
+					{
+						enemy_bug_bullet.erase(enemy_bug_bullet.begin() + i);
+						break;
+					}
+				}
+				for (int i = 0; i < enemy_cam_bullet.size(); i++)
+				{
+					if (enemy_cam_bullet[i].y <= cam.y || enemy_cam_bullet[i].y >= cam.y + SCREEN_HEIGHT)
+					{
+						enemy_cam_bullet.erase(enemy_cam_bullet.begin() + i);
+						break;
+					}
+				}
+
+				// enemy bug shoot
+				if (Dungeon_Enemy[i].id == 5 || Dungeon_Enemy[i].id == 9 || Dungeon_Enemy[i].id == 11 || Dungeon_Enemy[i].id == 12 ||
+					Dungeon_Enemy[i].id == 17 || Dungeon_Enemy[i].id == 20)
+				{
+					float a = jason.x - Dungeon_Enemy[i].x;
+					float b = jason.y - Dungeon_Enemy[i].y;
+
+					if (abs(a) <= 224 && abs(b) <= 224 && GetTickCount() - enemy_start_shoot >= 5000)
+					{
+						enemy_start_shoot = GetTickCount();
+						BULLET bu_temp;
+
+						bu_temp.movex = Dungeon_Enemy[i].movex / 7;
+						bu_temp.movey = Dungeon_Enemy[i].movey / 7;
+						bu_temp.x = Dungeon_Enemy[i].x;
+						bu_temp.y = Dungeon_Enemy[i].y;
+						bu_temp.width = 16;
+						bu_temp.height = 16;
+
+						enemy_bug_bullet.push_back(bu_temp);
+
+						enemy_bug_shoot_sound->Reset();
+						enemy_bug_shoot_sound->Play();
+					}
+				}
+
+				// enemy cam shoot
+				if (Dungeon_Enemy[i].id == 21 || Dungeon_Enemy[i].id == 22)
+				{
+					if (jason.x<Dungeon_Enemy[i].x + Dungeon_Enemy[i].width && jason.x + jason.width>Dungeon_Enemy[i].x &&
+						GetTickCount() - enemy_start_shoot >= 5000)
+					{
+						enemy_start_shoot = GetTickCount();
+
+						BULLET bu_temp;
+						bu_temp.x = Dungeon_Enemy[i].x;
+						bu_temp.y = Dungeon_Enemy[i].y;
+						bu_temp.movex = 0;
+						bu_temp.movey = 6;
+						bu_temp.width = 16;
+						bu_temp.height = 52;
+
+						enemy_cam_bullet.push_back(bu_temp);
+
+						enemy_cam_shoot_sound->Reset();
+						enemy_cam_shoot_sound->Play();
+					}
+				}
+
 			}
 
 			// enemy explode
@@ -1740,14 +1939,19 @@ void Game_Run(HWND hwnd)
 			if (sophia.hp > 0 && player == 1)
 			{
 				// Sophia Jump
-				if (map.sophia_collide_down(sophia))
+				if (map_info.sophia_collide_down(sophia))
 				{
 					sophia.movey = 0;
 					if (KEY_DOWN(VK_SPACE))
-						sophia.movey = -16;
+					{
+						sophia.movey = -SOPHIA_JUMP_SPEED;
+
+						sophia_jump_sound->Reset();
+						sophia_jump_sound->Play();
+					}
 				}
 				// Sophia Bounce top
-				else if (map.sophia_collide_up(sophia))
+				else if (map_info.sophia_collide_up(sophia))
 				{
 					sophia.movey = 6;
 				}
@@ -1765,7 +1969,7 @@ void Game_Run(HWND hwnd)
 				// Update Cam
 				if (sophia.movey > 0)
 				{
-					if (cam.y < map.height - SCREEN_HEIGHT - 16 && (sophia.y - cam.y) > SCREEN_HEIGHT / 2)
+					if (cam.y < map_info.height - SCREEN_HEIGHT - 16 && (sophia.y - cam.y) > SCREEN_HEIGHT / 2)
 						cam.y += sophia.movey;
 				}
 				else if (sophia.movey < 0)
@@ -1774,7 +1978,7 @@ void Game_Run(HWND hwnd)
 						cam.y += sophia.movey;
 				}
 
-				// Update bullet pos
+				// Update bullet position
 				for (int i = 0; i < sophia_bullet.size(); i++)
 				{
 					sophia_bullet[i].x += sophia_bullet[i].movex;
@@ -1799,16 +2003,22 @@ void Game_Run(HWND hwnd)
 					small_jason.movey = 0;
 					small_jason.direction = 6;
 
+					swap_player_sound->Reset();
+					swap_player_sound->Play();
 				}
 
 				// "C" key pressed, then shoot
 				if (KEY_DOWN(0x43))
 				{
 					if (sophia_bullet.size() < 3)
-						if (GetTickCount() - start_shoot >= 100)
+						if (GetTickCount() - char_start_shoot >= 100)
 						{
-							// Tái lập lại thời gian
-							start_shoot = GetTickCount();
+							// Sound						
+							sophia_shoot_sound->Reset();
+							sophia_shoot_sound->Play();
+							//
+
+							char_start_shoot = GetTickCount();
 							BULLET bullet;
 
 							if (sophia.direction == 6)
@@ -1854,7 +2064,7 @@ void Game_Run(HWND hwnd)
 						{
 							sophia_bullet.erase(sophia_bullet.begin() + i);
 						}
-						else if (map.sophia_bullet_collide_left(sophia_bullet[i]) || map.sophia_bullet_collide_right(sophia_bullet[i]))
+						else if (map_info.sophia_bullet_collide_left(sophia_bullet[i]) || map_info.sophia_bullet_collide_right(sophia_bullet[i]))
 						{
 							SPRITE ex_temp;
 							if (sophia_bullet[i].movex < 0)
@@ -1876,8 +2086,10 @@ void Game_Run(HWND hwnd)
 								ex_temp.animdelay = 2;
 							}
 							explosion.push_back(ex_temp);
-
 							sophia_bullet.erase(sophia_bullet.begin() + i);
+
+							sophia_bullet_explosion_sound->Reset();
+							sophia_bullet_explosion_sound->Play();
 						}
 					}
 					else if (sophia_bullet[i].movey != 0)
@@ -1886,7 +2098,7 @@ void Game_Run(HWND hwnd)
 						{
 							sophia_bullet.erase(sophia_bullet.begin() + i);
 						}
-						else if (map.sophia_bullet_collide_up(sophia_bullet[i]))
+						else if (map_info.sophia_bullet_collide_up(sophia_bullet[i]))
 						{
 							SPRITE ex_temp;
 							ex_temp.x = sophia_bullet[i].x;
@@ -1898,6 +2110,9 @@ void Game_Run(HWND hwnd)
 							explosion.push_back(ex_temp);
 
 							sophia_bullet.erase(sophia_bullet.begin() + i);
+
+							sophia_bullet_explosion_sound->Reset();
+							sophia_bullet_explosion_sound->Play();
 						}
 					}
 				}
@@ -1906,7 +2121,7 @@ void Game_Run(HWND hwnd)
 				{
 					sophia.move_left_up();
 
-					if (!map.sophia_collide_left(sophia) && sophia.x > 0)
+					if (!map_info.sophia_collide_left(sophia) && sophia.x > 0)
 					{
 						sophia.x += sophia.movex;
 						sophia.Update_body();
@@ -1920,13 +2135,13 @@ void Game_Run(HWND hwnd)
 				{
 					sophia.move_right_up();
 
-					if (!map.sophia_collide_right(sophia) && sophia.x < map.width && sophia.x < map.width - 64)
+					if (!map_info.sophia_collide_right(sophia) && sophia.x < map_info.width && sophia.x < map_info.width - 64)
 					{
 						sophia.x += sophia.movex;
 						sophia.Update_body();
 						sophia.Update_wheel();
 
-						if (sophia.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map.width - 32 - SCREEN_WIDTH)
+						if (sophia.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map_info.width - 32 - SCREEN_WIDTH)
 							cam.x += sophia.movex;
 					}
 				}
@@ -1950,7 +2165,7 @@ void Game_Run(HWND hwnd)
 				{
 					sophia.move_left();
 
-					if (!map.sophia_collide_left(sophia) && sophia.x > 0)
+					if (!map_info.sophia_collide_left(sophia) && sophia.x > 0)
 					{
 						sophia.x += sophia.movex;
 						sophia.Update_body();
@@ -1964,13 +2179,13 @@ void Game_Run(HWND hwnd)
 				{
 					sophia.move_right();
 
-					if (!map.sophia_collide_right(sophia) && sophia.x < map.width - 64)
+					if (!map_info.sophia_collide_right(sophia) && sophia.x < map_info.width - 64)
 					{
 						sophia.x += sophia.movex;
 						sophia.Update_body();
 						sophia.Update_wheel();
 
-						if (sophia.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map.width - 32 - SCREEN_WIDTH)
+						if (sophia.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map_info.width - 32 - SCREEN_WIDTH)
 							cam.x += sophia.movex;
 					}
 				}
@@ -2012,6 +2227,9 @@ void Game_Run(HWND hwnd)
 						items_area3_scene1.erase(items_area3_scene1.begin() + i);
 						if (sophia.hp < 8)
 							sophia.hp += 1;
+
+						get_item_sound->Reset();
+						get_item_sound->Play();
 					}
 				}
 				for (int i = 0; i < items_area3_scene2.size(); i++)
@@ -2021,6 +2239,9 @@ void Game_Run(HWND hwnd)
 						items_area3_scene2.erase(items_area3_scene2.begin() + i);
 						if (sophia.hp < 8)
 							sophia.hp += 1;
+
+						get_item_sound->Reset();
+						get_item_sound->Play();
 					}
 				}
 
@@ -2028,17 +2249,22 @@ void Game_Run(HWND hwnd)
 			// small jason
 			else if (sophia.hp > 0 && player == 0)
 			{
-				if (map.sophia_collide_down(small_jason))
+				if (map_info.sophia_collide_down(small_jason))
 				{
 					small_jason.movey = 0;
 					if (KEY_DOWN(VK_SPACE))
+					{
 						small_jason.movey = -16;
+
+						small_jason_jump_sound->Reset();
+						small_jason_jump_sound->Play();
+					}
 				}
-				else if (map.sophia_collide_up(small_jason))
+				else if (map_info.sophia_collide_up(small_jason))
 				{
 					small_jason.movey = 6;
 				}
-				// Sophia falling
+				// falling
 				else
 				{
 					small_jason.movey += 1;
@@ -2049,7 +2275,7 @@ void Game_Run(HWND hwnd)
 
 				if (small_jason.movey > 0)
 				{
-					if (cam.y < map.height - SCREEN_HEIGHT - 16 && (small_jason.y - cam.y) > SCREEN_HEIGHT / 2)
+					if (cam.y < map_info.height - SCREEN_HEIGHT - 16 && (small_jason.y - cam.y) > SCREEN_HEIGHT / 2)
 						cam.y += small_jason.movey;
 				}
 				else if (small_jason.movey < 0)
@@ -2063,6 +2289,9 @@ void Game_Run(HWND hwnd)
 					if (KEY_DOWN(VK_LSHIFT))
 					{
 						player = 1;
+
+						swap_player_sound->Reset();
+						swap_player_sound->Play();
 					}
 				}
 
@@ -2071,7 +2300,7 @@ void Game_Run(HWND hwnd)
 				{
 					small_jason.move_left();
 
-					if (!map.sophia_collide_left(small_jason) && small_jason.x > 0)
+					if (!map_info.sophia_collide_left(small_jason) && small_jason.x > 0)
 					{
 						small_jason.x += small_jason.movex;
 
@@ -2083,11 +2312,11 @@ void Game_Run(HWND hwnd)
 				{
 					small_jason.move_right();
 
-					if (!map.sophia_collide_right(small_jason) && small_jason.x < map.width - 64)
+					if (!map_info.sophia_collide_right(small_jason) && small_jason.x < map_info.width - 64)
 					{
 						small_jason.x += small_jason.movex;
 
-						if (small_jason.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map.width - 32 - SCREEN_WIDTH)
+						if (small_jason.x - cam.x - 32 > SCREEN_HEIGHT / 2 && cam.x < map_info.width - 32 - SCREEN_WIDTH)
 							cam.x += small_jason.movex;
 					}
 				}
@@ -2123,6 +2352,11 @@ void Game_Run(HWND hwnd)
 					ex_temp.animdelay = 2;
 					sophia_explosion.push_back(ex_temp);
 					sophia.hp--;
+
+					sophia.x = 0;
+					sophia.y = 0;
+
+					sophia_die_sound->Play();
 				}
 
 				for (int i = 0; i < sophia_explosion.size(); i++)
@@ -2142,9 +2376,10 @@ void Game_Run(HWND hwnd)
 		{
 #pragma region Update Enemy Area3 Scene1, Tele1
 
-			if (map.sophia_collide_tele1(sophia))
+			// Tele
+			if (map_info.sophia_collide_tele1(sophia))
 			{
-				map = map_area3_scene2;
+				map_info = map_area3_scene2;
 				mapid = 2;
 
 				cam.x = 2016;
@@ -2160,6 +2395,10 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
+
+					sophia_got_hit_sound->Stop();
+					sophia_got_hit_sound->Reset();
+					sophia_got_hit_sound->Play();
 				}
 
 				// Enemy Drop red behaviour
@@ -2186,6 +2425,10 @@ void Game_Run(HWND hwnd)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Area3_Scene1_Enemy[i].hp--;
+
+						enemy_got_hit_sound->Reset();
+						enemy_got_hit_sound->Play();
+
 						if (Area3_Scene1_Enemy[i].hp == 0)
 						{
 							SPRITE ex_temp;
@@ -2210,6 +2453,9 @@ void Game_Run(HWND hwnd)
 							}
 
 							Area3_Scene1_Enemy.erase(Area3_Scene1_Enemy.begin() + i);
+
+							enemy_die_sound->Reset();
+							enemy_die_sound->Play();
 						}
 						sophia_bullet.erase(sophia_bullet.begin() + j);
 						break;
@@ -2243,9 +2489,10 @@ void Game_Run(HWND hwnd)
 		{
 #pragma region Update Enemy Area3 Scene2, Tele2
 
-			if (map.sophia_collide_tele2(sophia))
+			// Tele 2
+			if (map_info.sophia_collide_tele2(sophia))
 			{
-				map = map_area3_scene3;
+				map_info = map_area3_scene3;
 				mapid = 4;
 
 				cam.x = 0;
@@ -2262,15 +2509,23 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
+
+					sophia_got_hit_sound->Stop();
+					sophia_got_hit_sound->Reset();
+					sophia_got_hit_sound->Play();
 				}
 
+				// sophia bullet hit enemy
 				for (int j = 0; j < sophia_bullet.size(); j++)
 				{
-
 					if (Area3_Scene2_Enemy[i].Bullet_collide(sophia_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 30)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Area3_Scene2_Enemy[i].hp--;
+
+						enemy_got_hit_sound->Reset();
+						enemy_got_hit_sound->Play();
+
 						if (Area3_Scene2_Enemy[i].hp == 0)
 						{
 
@@ -2296,6 +2551,9 @@ void Game_Run(HWND hwnd)
 							}
 
 							Area3_Scene2_Enemy.erase(Area3_Scene2_Enemy.begin() + i);
+
+							enemy_die_sound->Reset();
+							enemy_die_sound->Play();
 						}
 						sophia_bullet.erase(sophia_bullet.begin() + j);
 						break;
@@ -2315,6 +2573,24 @@ void Game_Run(HWND hwnd)
 				// Enemy Behavior
 				switch (Area3_Scene2_Enemy[i].id)
 				{
+				case 1:
+					if (sophia.x <= 2112 && Area3_Scene2_Enemy[i].y >= 64)
+					{
+						Area3_Scene2_Enemy[i].isActivate = true;
+						Area3_Scene2_Enemy[i].image[0] = enemy_ball_right_gray_image[0];
+						Area3_Scene2_Enemy[i].image[1] = enemy_ball_right_gray_image[1];
+						Area3_Scene2_Enemy[i].image[2] = enemy_ball_right_gray_image[2];
+					}
+					else if (Area3_Scene2_Enemy[i].y < 64)
+						Area3_Scene2_Enemy[i].isActivate = false;
+
+					if (Area3_Scene2_Enemy[i].isActivate)
+					{
+						Area3_Scene2_Enemy[i].x += 2;
+						Area3_Scene2_Enemy[i].y = (-5.0 / 128) * ((float)Area3_Scene2_Enemy[i].x * (float)Area3_Scene2_Enemy[i].x) +
+							165 * (float)Area3_Scene2_Enemy[i].x - 174016;
+					}
+					break;
 				case 2:
 					if (Area3_Scene2_Enemy[i].x <= 1632)
 						Area3_Scene2_Enemy[i].movex = 4;
@@ -2323,7 +2599,12 @@ void Game_Run(HWND hwnd)
 					Area3_Scene2_Enemy[i].x += Area3_Scene2_Enemy[i].movex;
 					break;
 				case 3:
-					if (sophia.x < 1824) Area3_Scene2_Enemy[i].isDraw = true;
+					if (sophia.x < 1824 && Area3_Scene2_Enemy[i].isDraw == false)
+					{
+						Area3_Scene2_Enemy[i].isDraw = true;
+						teeth_arrive_sound->Reset();
+						teeth_arrive_sound->Play();
+					}
 					if (Area3_Scene2_Enemy[i].isDraw == true)
 					{
 						Area3_Scene2_Enemy[i].x += -5;
@@ -2339,6 +2620,24 @@ void Game_Run(HWND hwnd)
 						Area3_Scene2_Enemy[i].movex = -4;
 					Area3_Scene2_Enemy[i].x += Area3_Scene2_Enemy[i].movex;
 					break;
+				case 5:
+					if (sophia.x <= 1376)
+					{
+						Area3_Scene2_Enemy[i].isActivate = true;
+						Area3_Scene2_Enemy[i].image[0] = enemy_ball_right_gray_image[0];
+						Area3_Scene2_Enemy[i].image[1] = enemy_ball_right_gray_image[1];
+						Area3_Scene2_Enemy[i].image[2] = enemy_ball_right_gray_image[2];
+					}
+					else if (Area3_Scene2_Enemy[i].y < 64)
+						Area3_Scene2_Enemy[i].isActivate = false;
+
+					if (Area3_Scene2_Enemy[i].isActivate)
+					{
+						Area3_Scene2_Enemy[i].x += 2;
+						Area3_Scene2_Enemy[i].y = (-5.0 / 128) * ((float)Area3_Scene2_Enemy[i].x * (float)Area3_Scene2_Enemy[i].x) +
+							(215.0 / 2) * (float)Area3_Scene2_Enemy[i].x - 73608;
+					}
+					break;
 				case 6:
 					if (Area3_Scene2_Enemy[i].x <= 960)
 						Area3_Scene2_Enemy[i].movex = 4;
@@ -2347,7 +2646,12 @@ void Game_Run(HWND hwnd)
 					Area3_Scene2_Enemy[i].x += Area3_Scene2_Enemy[i].movex;
 					break;
 				case 7:
-					if (sophia.x < 1088) Area3_Scene2_Enemy[i].isDraw = true;
+					if (sophia.x < 1088 && Area3_Scene2_Enemy[i].isDraw == false)
+					{
+						Area3_Scene2_Enemy[i].isDraw = true;
+						teeth_arrive_sound->Reset();
+						teeth_arrive_sound->Play();
+					}
 					if (Area3_Scene2_Enemy[i].isDraw == true)
 					{
 						Area3_Scene2_Enemy[i].x += 5;
@@ -2357,7 +2661,11 @@ void Game_Run(HWND hwnd)
 					}
 					break;
 				case 8:
-					if (sophia.x < 832) Area3_Scene2_Enemy[i].isDraw = true;
+					if (sophia.x < 832 && Area3_Scene2_Enemy[i].isDraw == false) {
+						Area3_Scene2_Enemy[i].isDraw = true;
+						teeth_arrive_sound->Reset();
+						teeth_arrive_sound->Play();
+					}
 					if (Area3_Scene2_Enemy[i].isDraw == true)
 					{
 						Area3_Scene2_Enemy[i].x += 5;
@@ -2394,6 +2702,24 @@ void Game_Run(HWND hwnd)
 						Area3_Scene2_Enemy[i].movex = -4;
 					Area3_Scene2_Enemy[i].x += Area3_Scene2_Enemy[i].movex;
 					break;
+				case 14:
+					if (sophia.y >= 704 && sophia.x >= 1344 && Area3_Scene2_Enemy[i].y >= 64)
+					{
+						Area3_Scene2_Enemy[i].isActivate = true;
+						Area3_Scene2_Enemy[i].image[0] = enemy_ball_right_gray_image[0];
+						Area3_Scene2_Enemy[i].image[1] = enemy_ball_right_gray_image[1];
+						Area3_Scene2_Enemy[i].image[2] = enemy_ball_right_gray_image[2];
+					}
+					else if (Area3_Scene2_Enemy[i].y < 544)
+						Area3_Scene2_Enemy[i].isActivate = false;
+
+					if (Area3_Scene2_Enemy[i].isActivate)
+					{
+						Area3_Scene2_Enemy[i].x += 2;
+						Area3_Scene2_Enemy[i].y = (-5.0 / 128) * ((float)Area3_Scene2_Enemy[i].x * (float)Area3_Scene2_Enemy[i].x) +
+							(215.0 / 2) * (float)Area3_Scene2_Enemy[i].x - 73096;
+					}
+					break;
 				case 15:
 					if (Area3_Scene2_Enemy[i].x <= 1376)
 						Area3_Scene2_Enemy[i].movex = 4;
@@ -2416,7 +2742,11 @@ void Game_Run(HWND hwnd)
 					Area3_Scene2_Enemy[i].x += Area3_Scene2_Enemy[i].movex;
 					break;
 				case 18:
-					if (sophia.x > 1920 && sophia.y > 832) Area3_Scene2_Enemy[i].isDraw = true;
+					if (sophia.x > 1920 && sophia.y > 832 && Area3_Scene2_Enemy[i].isDraw == false) {
+						Area3_Scene2_Enemy[i].isDraw = true;
+						teeth_arrive_sound->Reset();
+						teeth_arrive_sound->Play();
+					}
 					if (Area3_Scene2_Enemy[i].isDraw == true)
 					{
 						Area3_Scene2_Enemy[i].x += 5;
@@ -2426,7 +2756,11 @@ void Game_Run(HWND hwnd)
 					}
 					break;
 				case 19:
-					if (sophia.x > 1920 && sophia.y > 832) Area3_Scene2_Enemy[i].isDraw = true;
+					if (sophia.x > 1920 && sophia.y > 832 && Area3_Scene2_Enemy[i].isDraw == false) {
+						Area3_Scene2_Enemy[i].isDraw = true;
+						teeth_arrive_sound->Reset();
+						teeth_arrive_sound->Play();
+					}
 					if (Area3_Scene2_Enemy[i].isDraw == true)
 					{
 						Area3_Scene2_Enemy[i].x += 5;
@@ -2446,7 +2780,7 @@ void Game_Run(HWND hwnd)
 		{
 #pragma region Tele3
 			// small jason collide tele3
-			if (map.sophia_collide_tele3(small_jason))
+			if (map_info.sophia_collide_tele3(small_jason))
 			{
 				if (KEY_DOWN(VK_UP))
 				{
@@ -2454,10 +2788,12 @@ void Game_Run(HWND hwnd)
 					jason.hp = sophia.hp;
 
 					mapid = 3;
-					map = map_dungeon;
+					map_info = map_dungeon;
 
 					cam.x = 0;
 					cam.y = 16;
+
+					switch_scene_sound->Play();
 				}
 			}
 
@@ -2615,6 +2951,26 @@ void Game_Run(HWND hwnd)
 					dungeon_enemy_explosion_image[dungeon_enemy_explosion[i].curframe],
 					NULL, NULL,
 					&positionexplosion,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 0; i < enemy_bug_bullet.size(); i++)
+			{
+				D3DXVECTOR3 positioneshoot((float)enemy_bug_bullet[i].x - cam.x, (float)enemy_bug_bullet[i].y - cam.y, 0);
+				sprite_handler->Draw(
+					enemy_bug_bullet_image[0],
+					NULL, NULL,
+					&positioneshoot,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 0; i < enemy_cam_bullet.size(); i++)
+			{
+				D3DXVECTOR3 positioneshoot((float)enemy_cam_bullet[i].x - cam.x, (float)enemy_cam_bullet[i].y - cam.y, 0);
+				sprite_handler->Draw(
+					enemy_cam_bullet_image[0],
+					NULL, NULL,
+					&positioneshoot,
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
 
@@ -2875,7 +3231,7 @@ void Game_Run(HWND hwnd)
 				rect_src.right = TILE_SIZE;
 			}
 
-			d3ddev->StretchRect(map.image[map.matrix[cam.y / TILE_SIZE][j] - 1],
+			d3ddev->StretchRect(map_info.image[map_info.matrix[cam.y / TILE_SIZE][j] - 1],
 				&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 		}
 		// Draw last cell of line
@@ -2885,7 +3241,7 @@ void Game_Run(HWND hwnd)
 		rect_src.left = 0;
 		rect_src.right = offset_x;
 
-		d3ddev->StretchRect(map.image[map.matrix[cam.y / TILE_SIZE][j] - 1],
+		d3ddev->StretchRect(map_info.image[map_info.matrix[cam.y / TILE_SIZE][j] - 1],
 			&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 
 		rect_src.top = 0;
@@ -2909,7 +3265,7 @@ void Game_Run(HWND hwnd)
 					rect_src.right = TILE_SIZE;
 				}
 
-				d3ddev->StretchRect(map.image[map.matrix[i][j] - 1],
+				d3ddev->StretchRect(map_info.image[map_info.matrix[i][j] - 1],
 					&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 			}
 
@@ -2919,7 +3275,7 @@ void Game_Run(HWND hwnd)
 			rect_src.left = 0;
 			rect_src.right = offset_x;
 
-			d3ddev->StretchRect(map.image[map.matrix[i][j] - 1],
+			d3ddev->StretchRect(map_info.image[map_info.matrix[i][j] - 1],
 				&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 		}
 
@@ -2944,7 +3300,7 @@ void Game_Run(HWND hwnd)
 				rect_src.right = TILE_SIZE;
 			}
 
-			d3ddev->StretchRect(map.image[map.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
+			d3ddev->StretchRect(map_info.image[map_info.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
 				&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 		}
 
@@ -2954,7 +3310,7 @@ void Game_Run(HWND hwnd)
 		rect_src.left = 0;
 		rect_src.right = offset_x;
 
-		d3ddev->StretchRect(map.image[map.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
+		d3ddev->StretchRect(map_info.image[map_info.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
 			&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 #pragma endregion
 
@@ -3421,6 +3777,105 @@ void Game_Run(HWND hwnd)
 					&positiontile6,
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
+
+			D3DXVECTOR3 positiontile27((float)32 * 23 - cam.x, (float)32 * 77 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap11,
+				NULL, NULL,
+				&positiontile27,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile28((float)32 * 24 - cam.x, (float)32 * 77 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap12,
+				NULL, NULL,
+				&positiontile28,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile29((float)32 * 23 - cam.x, (float)32 * 78 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap23,
+				NULL, NULL,
+				&positiontile29,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile30((float)32 * 24 - cam.x, (float)32 * 78 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap24,
+				NULL, NULL,
+				&positiontile30,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile31((float)32 * 23 - cam.x, (float)32 * 79 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap35,
+				NULL, NULL,
+				&positiontile31,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile32((float)32 * 24 - cam.x, (float)32 * 79 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap36,
+				NULL, NULL,
+				&positiontile32,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			for (int i = 18; i < 22; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int i = 26; i < 30; i++)
+			{
+				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap9,
+					NULL, NULL,
+					&positiontile5,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap21,
+					NULL, NULL,
+					&positiontile6,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+			D3DXVECTOR3 positiontile33((float)32 * 22 - cam.x, (float)32 * 77 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap10,
+				NULL, NULL,
+				&positiontile33,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile34((float)32 * 22 - cam.x, (float)32 * 78 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap22,
+				NULL, NULL,
+				&positiontile34,
+				D3DCOLOR_XRGB(255, 255, 255));
+
+			D3DXVECTOR3 positiontile35((float)32 * 25 - cam.x, (float)32 * 77 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap8,
+				NULL, NULL,
+				&positiontile35,
+				D3DCOLOR_XRGB(255, 255, 255));
+			D3DXVECTOR3 positiontile36((float)32 * 25 - cam.x, (float)32 * 78 - cam.y, 0);
+			sprite_handler->Draw(
+				tilemap20,
+				NULL, NULL,
+				&positiontile36,
+				D3DCOLOR_XRGB(255, 255, 255));
+
 		}
 		else if (mapid == 4)
 		{
@@ -3468,21 +3923,27 @@ void Game_Run(HWND hwnd)
 
 		if (player == 1 || player == 0)
 		{
-			D3DXVECTOR3 positionhpbar(16, 256, 0);
-			sprite_handler->Draw(
-				hp_bar_image[sophia.hp],
-				NULL, NULL,
-				&positionhpbar,
-				D3DCOLOR_XRGB(255, 255, 255));
+			if (sophia.hp >= 0)
+			{
+				D3DXVECTOR3 positionhpbar(16, 256, 0);
+				sprite_handler->Draw(
+					hp_bar_image[sophia.hp],
+					NULL, NULL,
+					&positionhpbar,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
 		}
 		else if (player == 2)
 		{
-			D3DXVECTOR3 positionhpbar(16, 256, 0);
-			sprite_handler->Draw(
-				hp_bar_image[jason.hp],
-				NULL, NULL,
-				&positionhpbar,
-				D3DCOLOR_XRGB(255, 255, 255));
+			if (jason.hp >= 0)
+			{
+				D3DXVECTOR3 positionhpbar(16, 256, 0);
+				sprite_handler->Draw(
+					hp_bar_image[jason.hp],
+					NULL, NULL,
+					&positionhpbar,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
 		}
 
 #pragma endregion

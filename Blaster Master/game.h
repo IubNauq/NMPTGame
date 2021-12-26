@@ -8,7 +8,13 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <dsound.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <DxErr.h>
 
+#include "dxaudio.h"
+#include "dxgraphics.h"
 #include "sophia.h"
 #include "sprite.h"
 #include "map.h"
@@ -31,9 +37,9 @@ void Game_End(HWND);
 class BULLET
 {
 public:
-	int x, y;
+	float x, y;
 	int width, height;
-	int movex, movey;
+	float movex, movey;
 	int direction;	// 0: left, 1: right, 2:up, 3: down
 
 	bool up_down;	// used for jason bullet

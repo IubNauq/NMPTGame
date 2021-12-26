@@ -78,6 +78,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 0;
 	}
 
+	// initialize DirectSound
+	//if (!GA.Init_DirectSound(hWnd))
+	//{
+	//	MessageBox(hWnd, "Error initialize DirectSound",
+	//		"Error", MB_OK);
+	//}
+
 	int done = 0;
 	while (!done)
 	{

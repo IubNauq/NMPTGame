@@ -1,16 +1,18 @@
 #include "sprite.h"
 
+
+
 void SPRITE::move_right()
 {
 	direction = 6;
-	movex = 4;
+	movex = JASON_MOVE_SPEED;
 	movey = 0;
 }
 
 void SPRITE::move_left()
 {
 	direction = 4;
-	movex = -4;
+	movex = -JASON_MOVE_SPEED;
 	movey = 0;
 }
 
@@ -18,14 +20,14 @@ void SPRITE::move_up()
 {
 	direction = 8;
 	movex = 0;
-	movey = -4;
+	movey = -JASON_MOVE_SPEED;
 }
 
 void SPRITE::move_down()
 {
 	direction = 2;
 	movex = 0;
-	movey = 4;
+	movey = JASON_MOVE_SPEED;
 }
 
 bool SPRITE::Sophia_collide(SOPHIA sophia)

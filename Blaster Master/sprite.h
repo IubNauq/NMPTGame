@@ -5,12 +5,14 @@
 #include "sophia.h"
 #include "game.h"
 
+#define JASON_MOVE_SPEED 4;
+
 class SOPHIA;
 class BULLET;
 
 class SPRITE {
 public:
-	int x, y;
+	float x, y;
 	int width, height;
 	float movex, movey;
 	int curframe, lastframe;
@@ -18,6 +20,7 @@ public:
 	int direction;	// 2: down, 4: left, 6: right, 8: up 
 	int id;
 	bool isDraw;
+	bool isActivate = false;
 	int hp = 1;
 
 	bool isFire;

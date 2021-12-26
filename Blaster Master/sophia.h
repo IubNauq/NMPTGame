@@ -1,6 +1,9 @@
 #ifndef _SOPHIA_H
 #define _SOPHIA_H
 
+#define SOPHIA_MOVE_SPEED 4
+#define SOPHIA_JUMP_SPEED 16
+
 class SOPHIA {
 public:
 	int x, y;
