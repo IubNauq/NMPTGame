@@ -24,7 +24,6 @@ vector<SPRITE> sophia_explosion;
 LPDIRECT3DTEXTURE9 area3_bullet_explosion_image[4];
 
 LPDIRECT3DTEXTURE9 hp_bar_image[9];
-
 vector<SPRITE> explosion;
 
 // Small jason
@@ -33,8 +32,7 @@ LPDIRECT3DTEXTURE9 small_jason_image_left[4],
 small_jason_image_right[4];
 
 // Enemy in dungeon
-LPDIRECT3DTEXTURE9 enemy_bug_gray_image[3],
-enemy_bug_red_image[3],
+LPDIRECT3DTEXTURE9 enemy_bug_gray_image[3], enemy_bug_red_image[3],
 enemy_cam_gray_image[2],
 enemy_eye_gray_image[4];
 
@@ -49,7 +47,9 @@ vector<BULLET> enemy_cam_bullet;
 // Enemy in Area3
 LPDIRECT3DTEXTURE9 enemy_ball_left_gray_image[3], enemy_ball_right_gray_image[3],
 enemy_globular_gray_image[5],
-enemy_teeth_left_gray_image[4], enemy_teeth_right_gray_image[4];
+enemy_teeth_left_gray_image[4], enemy_teeth_right_gray_image[4],
+enemy_worm_red_image[4];
+
 LPDIRECT3DTEXTURE9 enemy_drop_red_image[2];
 LPDIRECT3DTEXTURE9 enemy_drop_bullet_image[1];
 vector<SPRITE> enemy_drop_bullet;
@@ -92,11 +92,17 @@ GSound* sophia_shoot_sound, * sophia_bullet_explosion_sound,
 * sophia_die_sound, * sophia_got_hit_sound, * sophia_jump_sound,
 * swap_player_sound, * get_item_sound;
 
-GSound* big_jason_shoot_sound, * big_jason_got_hit_sound,
+GSound* big_jason_shoot_sound, * big_jason_got_hit_sound, * big_jason_die_sound,
 * small_jason_jump_sound;
 
 GSound* enemy_got_hit_sound, * enemy_die_sound,
 * teeth_arrive_sound, * enemy_bug_shoot_sound, * enemy_cam_shoot_sound;
+
+// BOSS
+GSound* boss_sound, * boss_die_sound;
+
+LPDIRECT3DTEXTURE9 black_screen;
+bool jasonVSboss = false;
 
 int Game_Init(HWND hwnd)
 {
@@ -143,17 +149,25 @@ int Game_Init(HWND hwnd)
 	result = dsound->Create(&teeth_arrive_sound, s);
 	sprintf_s(s, "Sound\\switch_scene.wav");
 	result = dsound->Create(&switch_scene_sound, s);
-
 	sprintf_s(s, "Sound\\enemy_bug_shoot.wav");
 	result = dsound->Create(&enemy_bug_shoot_sound, s);
 	sprintf_s(s, "Sound\\enemy_cam_shoot.wav");
 	result = dsound->Create(&enemy_cam_shoot_sound, s);
+	sprintf_s(s, "Sound\\big_jason_die.wav");
+	result = dsound->Create(&big_jason_die_sound, s);
+	sprintf_s(s, "Sound\\boss.wav");
+	result = dsound->Create(&boss_sound, s);
 
 #pragma endregion
 
 	sprintf_s(s, "Picture\\Items\\P.png");
 	P_item_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 0));
 	if (P_item_image[0] == NULL)
+		return 0;
+
+	sprintf_s(s, "Picture\\black_screen.png");
+	black_screen = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 0));
+	if (black_screen == NULL)
 		return 0;
 
 #pragma region Load Jason Image
@@ -475,6 +489,14 @@ int Game_Init(HWND hwnd)
 	sprintf_s(s, "Picture\\Enemy\\enemy_drop_bullet.png");
 	enemy_drop_bullet_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
 
+	for (int i = 0; i < 4; i++)
+	{
+		sprintf_s(s, "Picture\\Enemy\\worm%d.png", i + 1);
+		enemy_worm_red_image[i] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+		if (enemy_worm_red_image[i] == NULL)
+			return 0;
+	}
+
 	for (int i = 0; i < 3; i++)
 	{
 		sprintf_s(s, "Picture\\Enemy\\enemy_ball%d.png", i + 1);
@@ -538,14 +560,17 @@ int Game_Init(HWND hwnd)
 #pragma region Parameter
 
 	// Area3 Scene1
+	//map_info = map_area3_scene1;
+	//mapid = 1;
+	//player = 1;
+
+	// Dungeon
 	map_info = map_dungeon;
 	mapid = 3;
+	player = 2;
 
 	cam.x = 0;
 	cam.y = 32;
-
-	/*player = 1;*/
-	player = 2;
 
 #pragma region Parameter of Character
 	sophia.x = 128;
@@ -1341,10 +1366,21 @@ void Game_Run(HWND hwnd)
 	if (d3ddev == NULL)
 		return;
 
-	if (sophia.hp > 0)
-		area3_sound->Play(0, DSBPLAY_LOOPING);
+	if (sophia.hp > 0 && jason.hp > 0)
+	{
+		if (jasonVSboss == false)
+			area3_sound->Play(0, DSBPLAY_LOOPING);
+		else
+		{
+			area3_sound->Stop();
+			boss_sound->Play(0, DSBPLAY_LOOPING);
+		}
+	}
 	else
+	{
 		area3_sound->Stop();
+		boss_sound->Stop();
+	}
 
 	if (GetTickCount() - start >= 30)
 	{
@@ -1471,7 +1507,7 @@ void Game_Run(HWND hwnd)
 					if (!map_info.jason_collide_left(jason))
 					{
 						jason.x += jason.movex;
-						if (jason.x - cam.x - 32 < SCREEN_HEIGHT / 2 && cam.x > 0 && cam.y >= 3520)
+						if (jason.x - cam.x - 32 < SCREEN_HEIGHT / 2 && cam.x > 0 && cam.y >= 3520 && cam.canUpdate)
 							cam.x += jason.movex;
 					}
 				}
@@ -1481,7 +1517,7 @@ void Game_Run(HWND hwnd)
 					if (!map_info.jason_collide_right(jason))
 					{
 						jason.x += jason.movex;
-						if (jason.x - cam.x - 32 > SCREEN_HEIGHT / 2 && jason.x < 768 && cam.y >= 3520)
+						if (jason.x - cam.x - 32 > SCREEN_HEIGHT / 2 && jason.x < 768 && cam.y >= 3520 && cam.canUpdate)
 							cam.x += jason.movex;
 					}
 				}
@@ -1491,7 +1527,7 @@ void Game_Run(HWND hwnd)
 					if (!map_info.jason_collide_up(jason))
 					{
 						jason.y += jason.movey;
-						if (cam.y >= 16 && (jason.y - cam.y) < SCREEN_HEIGHT / 2)
+						if (cam.y >= 16 && (jason.y - cam.y) < SCREEN_HEIGHT / 2 && cam.canUpdate)
 							cam.y += jason.movey;
 					}
 				}
@@ -1501,7 +1537,7 @@ void Game_Run(HWND hwnd)
 					if (!map_info.jason_collide_down(jason))
 					{
 						jason.y += jason.movey;
-						if (cam.y < map_info.height - SCREEN_HEIGHT - 32 && (jason.y - cam.y) > SCREEN_HEIGHT / 2)
+						if (cam.y < map_info.height - SCREEN_HEIGHT - 32 && (jason.y - cam.y) > SCREEN_HEIGHT / 2 && cam.canUpdate)
 							cam.y += jason.movey;
 					}
 				}
@@ -1585,6 +1621,13 @@ void Game_Run(HWND hwnd)
 						get_item_sound->Play();
 					}
 				}
+
+				if (jason.y <= 2464 && jason.x >= 576)
+				{
+					jasonVSboss = true;
+					cam.canUpdate = false;
+				}
+
 			}
 			// jason die
 			else
@@ -1600,6 +1643,12 @@ void Game_Run(HWND hwnd)
 					die_temp.animdelay = 2;
 					jason_die.push_back(die_temp);
 					jason.hp--;
+
+					jason.x = 0;
+					jason.y = 0;
+
+					big_jason_die_sound->Reset();
+					big_jason_die_sound->Play();
 				}
 
 				for (int i = 0; i < jason_die.size(); i++)
@@ -1870,7 +1919,8 @@ void Game_Run(HWND hwnd)
 
 				// enemy bug shoot
 				if (Dungeon_Enemy[i].id == 5 || Dungeon_Enemy[i].id == 9 || Dungeon_Enemy[i].id == 11 || Dungeon_Enemy[i].id == 12 ||
-					Dungeon_Enemy[i].id == 17 || Dungeon_Enemy[i].id == 20)
+					Dungeon_Enemy[i].id == 17 || Dungeon_Enemy[i].id == 20 || Dungeon_Enemy[i].id == 23)
+
 				{
 					float a = jason.x - Dungeon_Enemy[i].x;
 					float b = jason.y - Dungeon_Enemy[i].y;
@@ -1931,6 +1981,18 @@ void Game_Run(HWND hwnd)
 			}
 
 #pragma endregion
+
+#pragma region Update Boss
+			/////////////////////////////////
+
+			if (jasonVSboss)
+			{
+
+			}
+
+			/////////////////////////////////
+#pragma endregion
+
 		}
 		else if (mapid == 1 || mapid == 2 || mapid == 4)
 		{
@@ -2390,6 +2452,14 @@ void Game_Run(HWND hwnd)
 
 			for (int i = 0; i < Area3_Scene1_Enemy.size(); i++)
 			{
+				if (Area3_Scene1_Enemy[i].id == 0)
+					if (++Area3_Scene1_Enemy[i].animcount > Area3_Scene1_Enemy[i].animdelay)
+					{
+						Area3_Scene1_Enemy[i].animcount = 0;
+						if (++Area3_Scene1_Enemy[i].curframe > Area3_Scene1_Enemy[i].lastframe)
+							Area3_Scene1_Enemy[i].curframe = 0;
+					}
+
 				// sophia get hit by enemy
 				if (Area3_Scene1_Enemy[i].Sophia_collide(sophia) && GetTickCount() - char_start_get_hit >= 1000)
 				{
@@ -2402,7 +2472,8 @@ void Game_Run(HWND hwnd)
 				}
 
 				// Enemy Drop red behaviour
-				if (sophia.y > Area3_Scene1_Enemy[i].y && Area3_Scene1_Enemy[i].isFire == false)
+				if (sophia.y > Area3_Scene1_Enemy[i].y && Area3_Scene1_Enemy[i].isFire == false &&
+					(Area3_Scene1_Enemy[i].id == 1 || Area3_Scene1_Enemy[i].id == 2 || Area3_Scene1_Enemy[i].id == 3))
 					if (sophia.x< Area3_Scene1_Enemy[i].x + Area3_Scene1_Enemy[i].width &&
 						sophia.x + sophia.width>Area3_Scene1_Enemy[i].x)
 					{
@@ -2417,6 +2488,42 @@ void Game_Run(HWND hwnd)
 						bullet_temp.height = 18;
 						enemy_drop_bullet.push_back(bullet_temp);
 					}
+
+				// Worm behaviour
+				if (Area3_Scene1_Enemy[i].id == 0)
+				{
+					if (map_info.enemy_collide_down(Area3_Scene1_Enemy[i]))
+						Area3_Scene1_Enemy[i].movey = 0;
+					else
+					{
+						Area3_Scene1_Enemy[i].movey += 1;
+						if (Area3_Scene1_Enemy[i].movey >= 4)
+							Area3_Scene1_Enemy[i].movey = 4;
+					}
+					if (sophia.x < Area3_Scene1_Enemy[i].x)
+					{
+						if (!map_info.enemy_collide_left(Area3_Scene1_Enemy[i]))
+							Area3_Scene1_Enemy[i].movex = -2;
+						else
+							Area3_Scene1_Enemy[i].movex = 0;
+
+						Area3_Scene1_Enemy[i].image[0] = enemy_worm_red_image[0];
+						Area3_Scene1_Enemy[i].image[1] = enemy_worm_red_image[1];
+					}
+					else
+					{
+						if (!map_info.enemy_collide_right(Area3_Scene1_Enemy[i]))
+							Area3_Scene1_Enemy[i].movex = 2;
+						else
+							Area3_Scene1_Enemy[i].movex = 0;
+
+						Area3_Scene1_Enemy[i].image[0] = enemy_worm_red_image[2];
+						Area3_Scene1_Enemy[i].image[1] = enemy_worm_red_image[3];
+					}
+
+					Area3_Scene1_Enemy[i].x += Area3_Scene1_Enemy[i].movex;
+					Area3_Scene1_Enemy[i].y += Area3_Scene1_Enemy[i].movey;
+				}
 
 				// enemy get hit by sophia bullet
 				for (int j = 0; j < sophia_bullet.size(); j++)
@@ -2463,16 +2570,32 @@ void Game_Run(HWND hwnd)
 				}
 			}
 
+			// Bullet of enemy drop
 			for (int i = 0; i < enemy_drop_bullet.size(); i++)
 			{
-				if (enemy_drop_bullet[i].Sophia_collide(sophia))
+				if (enemy_drop_bullet[i].Sophia_collide(sophia) && GetTickCount() - char_start_get_hit >= 1000)
 				{
+					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
-					enemy_drop_bullet.erase(enemy_drop_bullet.begin() + i);
-					break;
 				}
-				if (enemy_drop_bullet[i].y > cam.y + SCREEN_HEIGHT)
+
+				if (map_info.enemy_collide_down(enemy_drop_bullet[i]))
 				{
+					temp.id = 0;
+					temp.x = enemy_drop_bullet[i].x;
+					temp.y = enemy_drop_bullet[i].y - 16;
+					temp.width = 36;
+					temp.height = 20;
+					temp.animcount = 0;
+					temp.animdelay = 5;
+					temp.curframe = 0;
+					temp.lastframe = 1;
+					temp.image[0] = enemy_worm_red_image[0];
+					temp.image[1] = enemy_worm_red_image[1];
+					temp.isDraw = true;
+					temp.hp = 2;
+					Area3_Scene1_Enemy.push_back(temp);
+
 					enemy_drop_bullet.erase(enemy_drop_bullet.begin() + i);
 					break;
 				}
@@ -2975,6 +3098,17 @@ void Game_Run(HWND hwnd)
 			}
 
 #pragma endregion
+
+#pragma region Draw BOSS
+
+			////////////////////
+
+
+
+			////////////////////
+
+#pragma endregion
+
 		}
 		else if (mapid == 1 || mapid == 2 || mapid == 4)
 		{
@@ -3314,6 +3448,15 @@ void Game_Run(HWND hwnd)
 			&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
 #pragma endregion
 
+		//////////// DRAW BOSS MAP
+
+		if (jasonVSboss)
+		{
+			d3ddev->Clear(0, NULL, D3DCLEAR_TARGET,
+				D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+		}
+
+		////////////////////////////
 #pragma region Draw Map cover player
 
 		if (mapid == 1)
@@ -3778,104 +3921,107 @@ void Game_Run(HWND hwnd)
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
 
-			D3DXVECTOR3 positiontile27((float)32 * 23 - cam.x, (float)32 * 77 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap11,
-				NULL, NULL,
-				&positiontile27,
-				D3DCOLOR_XRGB(255, 255, 255));
-			D3DXVECTOR3 positiontile28((float)32 * 24 - cam.x, (float)32 * 77 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap12,
-				NULL, NULL,
-				&positiontile28,
-				D3DCOLOR_XRGB(255, 255, 255));
-
-			D3DXVECTOR3 positiontile29((float)32 * 23 - cam.x, (float)32 * 78 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap23,
-				NULL, NULL,
-				&positiontile29,
-				D3DCOLOR_XRGB(255, 255, 255));
-			D3DXVECTOR3 positiontile30((float)32 * 24 - cam.x, (float)32 * 78 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap24,
-				NULL, NULL,
-				&positiontile30,
-				D3DCOLOR_XRGB(255, 255, 255));
-
-			D3DXVECTOR3 positiontile31((float)32 * 23 - cam.x, (float)32 * 79 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap35,
-				NULL, NULL,
-				&positiontile31,
-				D3DCOLOR_XRGB(255, 255, 255));
-			D3DXVECTOR3 positiontile32((float)32 * 24 - cam.x, (float)32 * 79 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap36,
-				NULL, NULL,
-				&positiontile32,
-				D3DCOLOR_XRGB(255, 255, 255));
-
-			for (int i = 18; i < 22; i++)
+			// BOSS
+			if (jasonVSboss == false)
 			{
-				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
+				D3DXVECTOR3 positiontile27((float)32 * 23 - cam.x, (float)32 * 77 - cam.y, 0);
 				sprite_handler->Draw(
-					tilemap9,
+					tilemap11,
 					NULL, NULL,
-					&positiontile5,
+					&positiontile27,
+					D3DCOLOR_XRGB(255, 255, 255));
+				D3DXVECTOR3 positiontile28((float)32 * 24 - cam.x, (float)32 * 77 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap12,
+					NULL, NULL,
+					&positiontile28,
 					D3DCOLOR_XRGB(255, 255, 255));
 
-				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
+				D3DXVECTOR3 positiontile29((float)32 * 23 - cam.x, (float)32 * 78 - cam.y, 0);
 				sprite_handler->Draw(
-					tilemap21,
+					tilemap23,
 					NULL, NULL,
-					&positiontile6,
+					&positiontile29,
+					D3DCOLOR_XRGB(255, 255, 255));
+				D3DXVECTOR3 positiontile30((float)32 * 24 - cam.x, (float)32 * 78 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap24,
+					NULL, NULL,
+					&positiontile30,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile31((float)32 * 23 - cam.x, (float)32 * 79 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap35,
+					NULL, NULL,
+					&positiontile31,
+					D3DCOLOR_XRGB(255, 255, 255));
+				D3DXVECTOR3 positiontile32((float)32 * 24 - cam.x, (float)32 * 79 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap36,
+					NULL, NULL,
+					&positiontile32,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				for (int i = 18; i < 22; i++)
+				{
+					D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap9,
+						NULL, NULL,
+						&positiontile5,
+						D3DCOLOR_XRGB(255, 255, 255));
+
+					D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap21,
+						NULL, NULL,
+						&positiontile6,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+
+				for (int i = 26; i < 30; i++)
+				{
+					D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap9,
+						NULL, NULL,
+						&positiontile5,
+						D3DCOLOR_XRGB(255, 255, 255));
+
+					D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
+					sprite_handler->Draw(
+						tilemap21,
+						NULL, NULL,
+						&positiontile6,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+				D3DXVECTOR3 positiontile33((float)32 * 22 - cam.x, (float)32 * 77 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap10,
+					NULL, NULL,
+					&positiontile33,
+					D3DCOLOR_XRGB(255, 255, 255));
+				D3DXVECTOR3 positiontile34((float)32 * 22 - cam.x, (float)32 * 78 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap22,
+					NULL, NULL,
+					&positiontile34,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontile35((float)32 * 25 - cam.x, (float)32 * 77 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap8,
+					NULL, NULL,
+					&positiontile35,
+					D3DCOLOR_XRGB(255, 255, 255));
+				D3DXVECTOR3 positiontile36((float)32 * 25 - cam.x, (float)32 * 78 - cam.y, 0);
+				sprite_handler->Draw(
+					tilemap20,
+					NULL, NULL,
+					&positiontile36,
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
-
-			for (int i = 26; i < 30; i++)
-			{
-				D3DXVECTOR3 positiontile5((float)32 * i - cam.x, (float)32 * 77 - cam.y, 0);
-				sprite_handler->Draw(
-					tilemap9,
-					NULL, NULL,
-					&positiontile5,
-					D3DCOLOR_XRGB(255, 255, 255));
-
-				D3DXVECTOR3 positiontile6((float)32 * i - cam.x, (float)32 * 78 - cam.y, 0);
-				sprite_handler->Draw(
-					tilemap21,
-					NULL, NULL,
-					&positiontile6,
-					D3DCOLOR_XRGB(255, 255, 255));
-			}
-			D3DXVECTOR3 positiontile33((float)32 * 22 - cam.x, (float)32 * 77 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap10,
-				NULL, NULL,
-				&positiontile33,
-				D3DCOLOR_XRGB(255, 255, 255));
-			D3DXVECTOR3 positiontile34((float)32 * 22 - cam.x, (float)32 * 78 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap22,
-				NULL, NULL,
-				&positiontile34,
-				D3DCOLOR_XRGB(255, 255, 255));
-
-			D3DXVECTOR3 positiontile35((float)32 * 25 - cam.x, (float)32 * 77 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap8,
-				NULL, NULL,
-				&positiontile35,
-				D3DCOLOR_XRGB(255, 255, 255));
-			D3DXVECTOR3 positiontile36((float)32 * 25 - cam.x, (float)32 * 78 - cam.y, 0);
-			sprite_handler->Draw(
-				tilemap20,
-				NULL, NULL,
-				&positiontile36,
-				D3DCOLOR_XRGB(255, 255, 255));
-
 		}
 		else if (mapid == 4)
 		{

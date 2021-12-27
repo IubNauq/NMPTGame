@@ -296,3 +296,37 @@ bool MAP::sophia_collide_tele3(SOPHIA sophia)
 		return true;
 	return false;
 }
+
+bool MAP::enemy_collide_down(SPRITE s)
+{
+	for (int j = s.x / TILE_SIZE; j <= (s.x + s.width) / TILE_SIZE; j++)
+	{
+		if (isSolid_Area3(j, (s.y + 4 + s.height) / TILE_SIZE))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+bool MAP::enemy_collide_left(SPRITE s)
+{
+	for (int i = (s.y + s.height / 2) / TILE_SIZE; i <= (s.y + s.height) / TILE_SIZE; i++)
+	{
+		if (isSolid_Area3((s.x - 4) / TILE_SIZE, i))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+bool MAP::enemy_collide_right(SPRITE s)
+{
+	for (int i = (s.y + s.height / 2) / TILE_SIZE; i <= (s.y + s.height) / TILE_SIZE; i++)
+	{
+		if (isSolid_Area3((s.x + s.width + 4) / TILE_SIZE, i))
+		{
+			return true;
+		}
+	}
+	return false;
+}

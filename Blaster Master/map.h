@@ -52,6 +52,10 @@ public:
 	bool sophia_collide_tele1(SOPHIA sophia);
 	bool sophia_collide_tele2(SOPHIA sophia);
 	bool sophia_collide_tele3(SOPHIA sophia);
+
+	bool enemy_collide_down(SPRITE s);
+	bool enemy_collide_left(SPRITE s);
+	bool enemy_collide_right(SPRITE s);
 };
 
 #endif
