@@ -5,11 +5,13 @@ HRESULT result;
 
 // Items
 LPDIRECT3DTEXTURE9 P_item_image[1];
-vector<SPRITE> items_area3_scene1, items_area3_scene2, items_dungeon;
+vector<SPRITE> items_area3_scene1, items_area3_scene2,
+items_dungeon;
 
 // Jason
 SPRITE jason;
-LPDIRECT3DTEXTURE9 jason_image_right[3], jason_image_left[3], jason_image_up[3], jason_image_down[3],
+LPDIRECT3DTEXTURE9 jason_image_right[3], jason_image_left[3],
+jason_image_up[3], jason_image_down[3],
 jason_bullet_image[4], jason_die_image[5];
 vector<BULLET> jason_bullet;
 LPDIRECT3DTEXTURE9 dungeon_bullet_explosion_image[2];
@@ -17,7 +19,8 @@ vector<SPRITE> jason_die;
 
 // Sophia
 SOPHIA sophia;
-LPDIRECT3DTEXTURE9 sophia_wheel_image[4], sophia_mid_wheel_image, sophia_body_image[6], sophia_gun_image[5],
+LPDIRECT3DTEXTURE9 sophia_wheel_image[4], sophia_mid_wheel_image,
+sophia_body_image[10], sophia_gun_image[5],
 sophia_bullet_image[3], sophia_explosion_image[2];
 vector<BULLET> sophia_bullet;
 vector<SPRITE> sophia_explosion;
@@ -25,6 +28,7 @@ LPDIRECT3DTEXTURE9 area3_bullet_explosion_image[4];
 
 LPDIRECT3DTEXTURE9 hp_bar_image[9];
 vector<SPRITE> explosion;
+bool openingCabin = false;
 
 // Small jason
 SOPHIA small_jason;
@@ -32,11 +36,12 @@ LPDIRECT3DTEXTURE9 small_jason_image_left[4],
 small_jason_image_right[4];
 
 // Enemy in dungeon
-LPDIRECT3DTEXTURE9 enemy_bug_gray_image[3], enemy_bug_red_image[3],
+LPDIRECT3DTEXTURE9 enemy_bug_gray_image[3],
+enemy_bug_red_image[3],
 enemy_cam_gray_image[2],
 enemy_eye_gray_image[4];
 
-LPDIRECT3DTEXTURE9 dungeon_enemy_explosion_image[2];
+LPDIRECT3DTEXTURE9 dungeon_enemy_explosion_image[3];
 vector<SPRITE> dungeon_enemy_explosion;
 
 LPDIRECT3DTEXTURE9 enemy_bug_bullet_image[1];
@@ -45,9 +50,11 @@ LPDIRECT3DTEXTURE9 enemy_cam_bullet_image[1];
 vector<BULLET> enemy_cam_bullet;
 
 // Enemy in Area3
-LPDIRECT3DTEXTURE9 enemy_ball_left_gray_image[3], enemy_ball_right_gray_image[3],
+LPDIRECT3DTEXTURE9 enemy_ball_left_gray_image[3],
+enemy_ball_right_gray_image[3],
 enemy_globular_gray_image[5],
-enemy_teeth_left_gray_image[4], enemy_teeth_right_gray_image[4],
+enemy_teeth_left_gray_image[4],
+enemy_teeth_right_gray_image[4],
 enemy_worm_red_image[4];
 
 LPDIRECT3DTEXTURE9 enemy_drop_red_image[2];
@@ -56,12 +63,14 @@ vector<SPRITE> enemy_drop_bullet;
 
 LPDIRECT3DTEXTURE9 enemy_rocket_gray_image[2];
 
-vector<SPRITE> Dungeon_Enemy, Area3_Scene1_Enemy, Area3_Scene2_Enemy;
+vector<SPRITE> Dungeon_Enemy, Area3_Scene1_Enemy,
+Area3_Scene2_Enemy;
 SPRITE temp;
 
 // Map
 MAP map_info;
-MAP map_area3_scene1, map_area3_scene2, map_area3_scene3, map_dungeon;
+MAP map_area3_scene1, map_area3_scene2,
+map_area3_scene3, map_dungeon;
 int mapid; // 1: area3_scene1, 2: area3_scene2, 3: dungeon, 4: area3_scene3
 
 LPDIRECT3DTEXTURE9 tilemap8, tilemap9, tilemap20, tilemap21,
@@ -82,6 +91,8 @@ long char_start_shoot = GetTickCount();
 long char_start_get_hit = GetTickCount();
 long enemy_start_get_hit = GetTickCount();
 long enemy_start_shoot = GetTickCount();
+long enemy_start_shoot2 = GetTickCount();
+long flashing_time = GetTickCount();
 
 bool flag = 1; // used for jason bullet
 int player; // 0:small jason, 1:sophia, 2:jason, 
@@ -92,17 +103,34 @@ GSound* sophia_shoot_sound, * sophia_bullet_explosion_sound,
 * sophia_die_sound, * sophia_got_hit_sound, * sophia_jump_sound,
 * swap_player_sound, * get_item_sound;
 
-GSound* big_jason_shoot_sound, * big_jason_got_hit_sound, * big_jason_die_sound,
-* small_jason_jump_sound;
+GSound* big_jason_shoot_sound, * big_jason_got_hit_sound,
+* big_jason_die_sound, * small_jason_jump_sound;
 
 GSound* enemy_got_hit_sound, * enemy_die_sound,
-* teeth_arrive_sound, * enemy_bug_shoot_sound, * enemy_cam_shoot_sound;
+* teeth_arrive_sound, * enemy_bug_shoot_sound,
+* enemy_cam_shoot_sound;
 
 // BOSS
-GSound* boss_sound, * boss_die_sound;
+LPDIRECT3DTEXTURE9 boss_tile, boss_image[4], boss_clone_image;
+SPRITE boss;
+vector<SPRITE> boss_clone;
+LPDIRECT3DTEXTURE9 boss_bullet_image[4]; // 2: \, 3: / 
+vector<BULLET> boss_bullet1, boss_bullet2, boss_bullet3;
+vector<SPRITE> boss_explosion, boss_explosion2;
 
-LPDIRECT3DTEXTURE9 black_screen;
+GSound* boss_sound, * boss_die_sound, * boss_got_hit_sound;
+
+vector<int> bossX = { 576,896,640,768,832,832,896,576,896,576 };
+vector<int> bossY = { 2144,2208,2144,2208,2272,2144,2464,2336,2336,2208 };
+
 bool jasonVSboss = false;
+
+vector<int> flashing_color_r = { 255,10,255,255,10,255,255,10,255 };
+vector<int> flashing_color_g = { 0,255,255,0,255,255,0,255,255 };
+vector<int> flashing_color_b = { 100,10,255,100,10,255,100,10,255 };
+int flashing_color_index = 0;
+int flashing_anicount = 0;
+int flashing_anidelay = 2;
 
 int Game_Init(HWND hwnd)
 {
@@ -157,17 +185,16 @@ int Game_Init(HWND hwnd)
 	result = dsound->Create(&big_jason_die_sound, s);
 	sprintf_s(s, "Sound\\boss.wav");
 	result = dsound->Create(&boss_sound, s);
+	sprintf_s(s, "Sound\\boss_die.wav");
+	result = dsound->Create(&boss_die_sound, s);
+	sprintf_s(s, "Sound\\boss_got_hit.wav");
+	result = dsound->Create(&boss_got_hit_sound, s);
 
 #pragma endregion
 
 	sprintf_s(s, "Picture\\Items\\P.png");
 	P_item_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 0));
 	if (P_item_image[0] == NULL)
-		return 0;
-
-	sprintf_s(s, "Picture\\black_screen.png");
-	black_screen = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 0));
-	if (black_screen == NULL)
 		return 0;
 
 #pragma region Load Jason Image
@@ -204,13 +231,16 @@ int Game_Init(HWND hwnd)
 	sprintf_s(s, "Picture\\Bullet\\jason_bullet_down.png");
 	jason_bullet_image[3] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		sprintf_s(s, "Picture\\Explosion\\Dungeon_Enemy_Explosion%d.png", i + 1);
-		dungeon_enemy_explosion_image[i] = LoadTexture(s, D3DCOLOR_XRGB(255, 255, 255));
+		dungeon_enemy_explosion_image[i] = LoadTexture(s, D3DCOLOR_XRGB(0, 0, 255));
 		if (dungeon_enemy_explosion_image[i] == NULL)
 			return 0;
+	}
 
+	for (int i = 0; i < 2; i++)
+	{
 		sprintf_s(s, "Picture\\Explosion\\dungeon_boom_%d.png", i + 1);
 		dungeon_bullet_explosion_image[i] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
 		if (dungeon_bullet_explosion_image[i] == NULL)
@@ -251,6 +281,14 @@ int Game_Init(HWND hwnd)
 	sophia_body_image[4] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
 	sprintf_s(s, "Picture\\Sophia\\bodyup%d_right.png", 1);
 	sophia_body_image[5] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Sophia\\body_left_open1.png");
+	sophia_body_image[6] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Sophia\\body_left_open2.png");
+	sophia_body_image[7] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Sophia\\body_right_open1.png");
+	sophia_body_image[8] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
+	sprintf_s(s, "Picture\\Sophia\\body_right_open2.png");
+	sophia_body_image[9] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
 
 	sprintf_s(s, "Picture\\Sophia\\gun%d_left.png", 1);
 	sophia_gun_image[0] = LoadTexture(s, D3DCOLOR_XRGB(0, 57, 115));
@@ -315,6 +353,11 @@ int Game_Init(HWND hwnd)
 #pragma endregion
 
 #pragma region Load Map Image
+
+	// BOSS map
+	sprintf_s(s, "Picture\\Boss\\boss_tile.png");
+	boss_tile = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+
 	// Area3 Scene1
 	for (int i = 0; i < 112; i++)
 	{
@@ -557,20 +600,60 @@ int Game_Init(HWND hwnd)
 
 #pragma endregion
 
+#pragma region Load Boss Image
+
+	sprintf_s(s, "Picture\\Boss\\boss1.png");
+	boss_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss2.png");
+	boss_image[1] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss3.png");
+	boss_image[2] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss4.png");
+	boss_image[3] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss_clone.png");
+	boss_clone_image = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss_bullet_horizontal.png");
+	boss_bullet_image[0] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss_bullet_vertical.png");
+	boss_bullet_image[1] = LoadTexture(s, D3DCOLOR_XRGB(255, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss_bullet_diagona_right.png");
+	boss_bullet_image[2] = LoadTexture(s, D3DCOLOR_XRGB(0, 0, 255));
+	sprintf_s(s, "Picture\\Boss\\boss_bullet_diagona_left.png");
+	boss_bullet_image[3] = LoadTexture(s, D3DCOLOR_XRGB(0, 0, 255));
+
+#pragma endregion
+
 #pragma region Parameter
 
 	// Area3 Scene1
-	//map_info = map_area3_scene1;
-	//mapid = 1;
-	//player = 1;
+	map_info = map_area3_scene1;
+	mapid = 1;
+	player = 1;
 
 	// Dungeon
-	map_info = map_dungeon;
-	mapid = 3;
-	player = 2;
+	//map_info = map_dungeon;
+	//mapid = 3;
+	//player = 2;
 
 	cam.x = 0;
 	cam.y = 32;
+
+	//cam.x = 512;
+	//cam.y = 2560;
+
+#pragma region Parameter of Boss
+
+	boss.x = 704;
+	boss.y = 2208;
+	boss.width = 64;
+	boss.height = 64;
+	boss.animcount = 0;
+	boss.animdelay = 10;
+	boss.curframe = 0;
+	boss.lastframe = 3;
+	boss.hp = 3;
+
+#pragma endregion
 
 #pragma region Parameter of Character
 	sophia.x = 128;
@@ -586,10 +669,13 @@ int Game_Init(HWND hwnd)
 	sophia.Update_wheel();
 	sophia.wheelcurframe = 0;
 	sophia.wheellastframe = 3;
+	sophia.bodycurframe = 3;
 	sophia.hp = 8;
 
 	jason.x = 216;
 	jason.y = 96;
+	//jason.x = 800;
+	//jason.y = 2688;
 	jason.width = 48;
 	jason.height = 64;
 	jason.curframe = 0;
@@ -1370,11 +1456,6 @@ void Game_Run(HWND hwnd)
 	{
 		if (jasonVSboss == false)
 			area3_sound->Play(0, DSBPLAY_LOOPING);
-		else
-		{
-			area3_sound->Stop();
-			boss_sound->Play(0, DSBPLAY_LOOPING);
-		}
 	}
 	else
 	{
@@ -1501,6 +1582,12 @@ void Game_Run(HWND hwnd)
 						}
 				}
 
+				// Heal for jason
+				if (KEY_DOWN(0x58))
+				{
+					jason.hp = 8;
+				}
+
 				if (KEY_DOWN(VK_LEFT))
 				{
 					jason.move_left();
@@ -1548,15 +1635,14 @@ void Game_Run(HWND hwnd)
 				}
 
 				// Jason collide with trap
-				if (map_info.jason_collide_trap_down(jason) ||
-					map_info.jason_collide_trap_right(jason) ||
-					map_info.jason_collide_trap_left(jason) ||
-					map_info.jason_collide_trap_up(jason))
+				if (map_info.jason_collide_trap_down(jason) || map_info.jason_collide_trap_right(jason) ||
+					map_info.jason_collide_trap_left(jason) || map_info.jason_collide_trap_up(jason))
 				{
-					if (GetTickCount() - char_start_get_hit >= 500)
+					if (GetTickCount() - char_start_get_hit >= 1000)
 					{
 						char_start_get_hit = GetTickCount();
 						jason.hp -= 1;
+						jason.isDamaged = true;
 
 						big_jason_got_hit_sound->Reset();
 						big_jason_got_hit_sound->Play();
@@ -1589,6 +1675,19 @@ void Game_Run(HWND hwnd)
 					}
 				}
 
+				// jason flashing effect
+				if (jason.isDamaged)
+				{
+					if (++flashing_anicount > flashing_anidelay)
+					{
+						flashing_anicount = 0;
+						if (++flashing_color_index > 8)
+							flashing_color_index = 0;
+					}
+				}
+				if (jason.isDamaged && GetTickCount() - char_start_get_hit >= 400)
+					jason.isDamaged = false;
+
 				// update jason frame
 				if (++jason.animcount > jason.animdelay)
 				{
@@ -1597,7 +1696,7 @@ void Game_Run(HWND hwnd)
 						jason.curframe = 0;
 				}
 
-				// update exploseion frame
+				// update explosion frame
 				for (int i = 0; i < explosion.size(); i++)
 				{
 					if (++explosion[i].animcount > explosion[i].animdelay)
@@ -1622,10 +1721,13 @@ void Game_Run(HWND hwnd)
 					}
 				}
 
+				// jason get in boss room
 				if (jason.y <= 2464 && jason.x >= 576)
 				{
 					jasonVSboss = true;
 					cam.canUpdate = false;
+					cam.x = 512;
+					cam.y = 2112;
 				}
 
 			}
@@ -1672,6 +1774,7 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					jason.hp--;
+					jason.isDamaged = true;
 
 					big_jason_got_hit_sound->Reset();
 					big_jason_got_hit_sound->Play();
@@ -1680,10 +1783,11 @@ void Game_Run(HWND hwnd)
 				// enemy get hit by bullet
 				for (int j = 0; j < jason_bullet.size(); j++)
 				{
-					if (Dungeon_Enemy[i].Bullet_collide(jason_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 30)
+					if (Dungeon_Enemy[i].Bullet_collide(jason_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 500)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Dungeon_Enemy[i].hp--;
+						Dungeon_Enemy[i].isDamaged = true;
 
 						enemy_got_hit_sound->Reset();
 						enemy_got_hit_sound->Play();
@@ -1724,6 +1828,19 @@ void Game_Run(HWND hwnd)
 
 			for (int i = 0; i < Dungeon_Enemy.size(); i++)
 			{
+				// enemy flashing effect
+				if (Dungeon_Enemy[i].isDamaged)
+				{
+					if (++flashing_anicount > flashing_anidelay)
+					{
+						flashing_anicount = 0;
+						if (++flashing_color_index > 8)
+							flashing_color_index = 0;
+					}
+				}
+				if (Dungeon_Enemy[i].isDamaged && GetTickCount() - enemy_start_get_hit >= 400)
+					Dungeon_Enemy[i].isDamaged = false;
+
 				// update enemy frame
 				if (++Dungeon_Enemy[i].animcount > Dungeon_Enemy[i].animdelay)
 				{
@@ -1875,8 +1992,8 @@ void Game_Run(HWND hwnd)
 					if (jason.Bullet_collide(enemy_bug_bullet[i]) && GetTickCount() - char_start_get_hit >= 1000)
 					{
 						char_start_get_hit = GetTickCount();
-
 						jason.hp -= 1;
+						jason.isDamaged = true;
 
 						big_jason_got_hit_sound->Reset();
 						big_jason_got_hit_sound->Play();
@@ -1890,8 +2007,8 @@ void Game_Run(HWND hwnd)
 					if (jason.Bullet_collide(enemy_cam_bullet[i]) && GetTickCount() - char_start_get_hit >= 1000)
 					{
 						char_start_get_hit = GetTickCount();
-
 						jason.hp -= 1;
+						jason.isDamaged = true;
 
 						big_jason_got_hit_sound->Reset();
 						big_jason_got_hit_sound->Play();
@@ -1918,8 +2035,8 @@ void Game_Run(HWND hwnd)
 				}
 
 				// enemy bug shoot
-				if (Dungeon_Enemy[i].id == 5 || Dungeon_Enemy[i].id == 9 || Dungeon_Enemy[i].id == 11 || Dungeon_Enemy[i].id == 12 ||
-					Dungeon_Enemy[i].id == 17 || Dungeon_Enemy[i].id == 20 || Dungeon_Enemy[i].id == 23)
+				if (Dungeon_Enemy[i].id == 5 || Dungeon_Enemy[i].id == 12 || Dungeon_Enemy[i].id == 11 || Dungeon_Enemy[i].id == 12 ||
+					Dungeon_Enemy[i].id == 17 || Dungeon_Enemy[i].id == 20 || Dungeon_Enemy[i].id == 27)
 
 				{
 					float a = jason.x - Dungeon_Enemy[i].x;
@@ -1947,8 +2064,8 @@ void Game_Run(HWND hwnd)
 				// enemy cam shoot
 				if (Dungeon_Enemy[i].id == 21 || Dungeon_Enemy[i].id == 22)
 				{
-					if (jason.x<Dungeon_Enemy[i].x + Dungeon_Enemy[i].width && jason.x + jason.width>Dungeon_Enemy[i].x &&
-						GetTickCount() - enemy_start_shoot >= 5000)
+					if (jason.x <= Dungeon_Enemy[i].x + Dungeon_Enemy[i].width && jason.x + jason.width >= Dungeon_Enemy[i].x &&
+						jason.y >= 3584 && GetTickCount() - enemy_start_shoot >= 3000)
 					{
 						enemy_start_shoot = GetTickCount();
 
@@ -1966,10 +2083,9 @@ void Game_Run(HWND hwnd)
 						enemy_cam_shoot_sound->Play();
 					}
 				}
-
 			}
 
-			// enemy explode
+			// update frame enemy explode
 			for (int i = 0; i < dungeon_enemy_explosion.size(); i++)
 			{
 				if (++dungeon_enemy_explosion[i].animcount > dungeon_enemy_explosion[i].animdelay)
@@ -1983,22 +2099,669 @@ void Game_Run(HWND hwnd)
 #pragma endregion
 
 #pragma region Update Boss
-			/////////////////////////////////
 
 			if (jasonVSboss)
 			{
+				map_info.matrix[79][23] = 9;
+				map_info.matrix[79][24] = 9;
 
+				if (boss.hp > -1)
+				{
+					area3_sound->Stop();
+					boss_sound->Play(0, DSBPLAY_LOOPING);
+				}
+
+				// update boss bullet
+				for (int i = 0; i < boss_bullet1.size(); i++)
+				{
+					if (boss_bullet1[i].direction == 4)
+						boss_bullet1[i].x -= 8;
+					else if (boss_bullet1[i].direction == 6)
+						boss_bullet1[i].x += 8;
+					else if (boss_bullet1[i].direction == 2)
+						boss_bullet1[i].y += 8;
+					else if (boss_bullet1[i].direction == 8)
+						boss_bullet1[i].y -= 8;
+				}
+				for (int i = 0; i < boss_bullet2.size(); i++)
+				{
+					if (boss_bullet2[i].direction == 4)
+					{
+						boss_bullet2[i].x -= 5;
+						boss_bullet2[i].y += 5;
+					}
+					else if (boss_bullet2[i].direction == 6)
+					{
+						boss_bullet2[i].x += 5;
+						boss_bullet2[i].y -= 5;
+					}
+					else if (boss_bullet2[i].direction == 2)
+					{
+						boss_bullet2[i].x += 5;
+						boss_bullet2[i].y += 5;
+					}
+					else if (boss_bullet2[i].direction == 8)
+					{
+						boss_bullet2[i].x -= 5;
+						boss_bullet2[i].y -= 5;
+					}
+				}
+				for (int i = 0; i < boss_bullet3.size(); i++)
+				{
+					if (boss_bullet3[i].direction == 4)
+					{
+						boss_bullet3[i].x -= 5;
+						boss_bullet3[i].y -= 5;
+					}
+					else if (boss_bullet3[i].direction == 6)
+					{
+						boss_bullet3[i].x += 5;
+						boss_bullet3[i].y += 5;
+					}
+					else if (boss_bullet3[i].direction == 2)
+					{
+						boss_bullet3[i].x -= 5;
+						boss_bullet3[i].y += 5;
+					}
+					else if (boss_bullet3[i].direction == 8)
+					{
+						boss_bullet3[i].x += 5;
+						boss_bullet3[i].y -= 5;
+					}
+				}
+				for (int i = 0; i < boss_bullet1.size(); i++)
+				{
+					if (boss_bullet1[i].x > cam.x + SCREEN_WIDTH || boss_bullet1[i].y > cam.y + SCREEN_HEIGHT ||
+						boss_bullet1[i].x < cam.x || boss_bullet1[i].y < cam.y)
+						boss_bullet1.erase(boss_bullet1.begin() + i);
+
+
+
+					/*if (boss_bullet3[i].x > cam.x + SCREEN_WIDTH || boss_bullet3[i].y > cam.y + SCREEN_HEIGHT ||
+						boss_bullet3[i].x < cam.x || boss_bullet3[i].y < cam.y)
+						boss_bullet3.erase(boss_bullet3.begin() + i);*/
+				}
+				for (int i = 0; i < boss_bullet2.size(); i++)
+				{
+					if (boss_bullet2[i].x > cam.x + SCREEN_WIDTH || boss_bullet2[i].y > cam.y + SCREEN_HEIGHT ||
+						boss_bullet2[i].x < cam.x || boss_bullet2[i].y < cam.y)
+						boss_bullet2.erase(boss_bullet2.begin() + i);
+				}
+				for (int i = 0; i < boss_bullet3.size(); i++)
+				{
+					if (boss_bullet3[i].x > cam.x + SCREEN_WIDTH || boss_bullet3[i].y > cam.y + SCREEN_HEIGHT ||
+						boss_bullet3[i].x < cam.x || boss_bullet3[i].y < cam.y)
+						boss_bullet3.erase(boss_bullet3.begin() + i);
+				}
+
+				// boss get hit
+				if (boss.canHit)
+				{
+					for (int j = 0; j < jason_bullet.size(); j++)
+					{
+						if (boss.Bullet_collide(jason_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 500)
+						{
+							enemy_start_get_hit = GetTickCount();
+							boss.hp--;
+							boss.isDamaged = true;
+
+							boss_got_hit_sound->Reset();
+							boss_got_hit_sound->Play();
+
+							// Boss die
+							if (boss.hp == 0)
+							{
+								if (boss.BossCurPos > 0)
+								{
+									SPRITE ex_temp;
+									ex_temp.x = boss.x;
+									ex_temp.y = boss.y;
+									ex_temp.curframe = 0;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion2.push_back(ex_temp);
+
+									boss.BossCurPos--;
+									boss.x = boss_clone[boss.BossCurPos].x;
+									boss.y = boss_clone[boss.BossCurPos].y;
+									boss_clone.pop_back();
+
+									boss.hp = 3;
+									boss.curframe = 3;
+								}
+								else
+								{
+									boss.hp--;
+
+									SPRITE ex_temp;
+									ex_temp.x = boss.x - 32;
+									ex_temp.y = boss.y - 64;
+									ex_temp.curframe = 0;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion.push_back(ex_temp);
+
+									ex_temp.x = boss.x + 64;
+									ex_temp.y = boss.y - 96;
+									ex_temp.curframe = 1;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion.push_back(ex_temp);
+
+									ex_temp.x = boss.x + 32;
+									ex_temp.y = boss.y - 16;
+									ex_temp.curframe = 2;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion.push_back(ex_temp);
+
+									ex_temp.x = boss.x - 64;
+									ex_temp.y = boss.y + 48;
+									ex_temp.curframe = 0;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion.push_back(ex_temp);
+
+									ex_temp.x = boss.x + 128;
+									ex_temp.y = boss.y - 16;
+									ex_temp.curframe = 1;
+									ex_temp.lastframe = 2;
+									ex_temp.animcount = 0;
+									ex_temp.animdelay = 2;
+									boss_explosion.push_back(ex_temp);
+
+									boss_sound->Stop();
+									boss_die_sound->Play();
+								}
+							}
+
+							jason_bullet.erase(jason_bullet.begin() + j);
+							break;
+						}
+					}
+
+					if (boss.isDamaged)
+					{
+						if (++flashing_anicount > flashing_anidelay)
+						{
+							flashing_anicount = 0;
+							if (++flashing_color_index > 8)
+								flashing_color_index = 0;
+						}
+					}
+					
+					if (boss.isDamaged && GetTickCount() - enemy_start_get_hit >= 400 && boss.hp >= 0)
+						boss.isDamaged = false;
+					if (boss.hp < 0)
+						boss.isDamaged = true;
+
+					if (++boss.animcount > boss.animdelay)
+					{
+						boss.animcount = 0;
+						if (boss.curframe > 0)
+							boss.curframe--;
+					}
+
+					if (boss.curframe == 0)
+					{
+						// boss moving
+						switch (boss.BossCurPos)
+						{
+						case 9:
+							if (boss.y <= 2336)
+								boss.y += 2;
+							break;
+						case 8:
+							if (boss.y <= 2336)
+								boss.y += 2;
+							break;
+						case 7:
+							if (boss.y <= 2464)
+								boss.y += 2;
+							break;
+						case 6:
+							if (boss.x >= 768)
+								boss.x -= 2;
+							break;
+						case 5:
+							if (boss.x <= 768)
+								boss.x += 2;
+							break;
+						case 4:
+							if (boss.y >= 2144)
+								boss.y -= 2;
+							break;
+						case 3:
+							if (boss.x >= 576)
+								boss.x -= 2;
+							break;
+						case 2:
+							if (boss.x <= 896)
+								boss.x += 2;
+							break;
+						case 1:
+							if (boss.x >= 576)
+								boss.x -= 2;
+							break;
+						default:
+							break;
+						}
+
+						// boss shoot
+						if (boss.numOfbullet < 3)
+						{
+							if (GetTickCount() - enemy_start_shoot2 >= 300 && boss.hp > 0)
+							{
+								enemy_start_shoot2 = GetTickCount();
+								enemy_start_shoot = GetTickCount();
+
+								float xx = boss.x - jason.x;
+								float yy = boss.y - jason.y;
+
+								if (abs(xx) > abs(yy))
+								{
+									// shoot left
+									if (xx > 0)
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 32;
+										bu_temp.height = 6;
+										bu_temp.direction = 4;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 4;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+									// shoot right
+									else
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 64;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 32;
+										bu_temp.height = 6;
+										bu_temp.direction = 6;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 64;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 6;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+								}
+								else
+								{
+									// shoot top
+									if (yy > 0)
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y;
+										bu_temp.width = 6;
+										bu_temp.height = 32;
+										bu_temp.direction = 8;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 8;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+									// shoot down
+									else
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y + 64;
+										bu_temp.width = 6;
+										bu_temp.height = 32;
+										bu_temp.direction = 2;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y + 64;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 2;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+								}
+								boss.numOfbullet++;
+
+								enemy_bug_shoot_sound->Reset();
+								enemy_bug_shoot_sound->Play();
+							}
+						}
+						else if (GetTickCount() - enemy_start_shoot >= 3000)
+						{
+							boss.numOfbullet = 0;
+						}
+					}
+				}
+
+				// Boss multiplying
+				if (!boss.canHit)
+				{
+					if (boss.isBossMoving)
+					{
+						switch (boss.BossCurPos)
+						{
+						case 1:
+							if (boss.x <= 704)
+								boss.x += 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 2:
+							if (boss.x >= 832)
+								boss.x -= 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 3:
+							if (boss.y <= 2272)
+								boss.y += 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 4:
+							if (boss.y <= 2336)
+								boss.y += 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 5:
+							if (boss.x >= 704)
+								boss.x -= 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 6:
+							if (boss.x <= 896)
+								boss.x += 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 7:
+							if (boss.y >= 2400)
+								boss.y -= 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 8:
+							if (boss.y >= 2144)
+								boss.y -= 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 9:
+							if (boss.y >= 2208)
+								boss.y -= 2;
+							else
+								boss.isBossMoving = false;
+							break;
+						case 10:
+							if (boss.x <= 640)
+								boss.x += 2;
+							else
+							{
+								boss.isBossMoving = false;
+								boss.canHit = true;
+							}
+							break;
+						default:
+							break;
+						}
+
+						// Boss shoot
+						if (boss.numOfbullet < 3)
+						{
+							if (GetTickCount() - enemy_start_shoot2 >= 300)
+							{
+								enemy_start_shoot2 = GetTickCount();
+								enemy_start_shoot = GetTickCount();
+
+								float xx = boss.x - jason.x;
+								float yy = boss.y - jason.y;
+
+								if (abs(xx) > abs(yy))
+								{
+									// shoot left
+									if (xx > 0)
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 32;
+										bu_temp.height = 6;
+										bu_temp.direction = 4;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 4;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+									// shoot right
+									else
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 64;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 32;
+										bu_temp.height = 6;
+										bu_temp.direction = 6;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 64;
+										bu_temp.y = boss.y + 32;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 6;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+								}
+								else
+								{
+									// shoot top
+									if (yy > 0)
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y;
+										bu_temp.width = 6;
+										bu_temp.height = 32;
+										bu_temp.direction = 8;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 8;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+									// shoot down
+									else
+									{
+										BULLET bu_temp;
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y + 64;
+										bu_temp.width = 6;
+										bu_temp.height = 32;
+										bu_temp.direction = 2;
+										boss_bullet1.push_back(bu_temp);
+
+										bu_temp.x = boss.x + 32;
+										bu_temp.y = boss.y + 64;
+										bu_temp.width = 24;
+										bu_temp.height = 24;
+										bu_temp.direction = 2;
+										boss_bullet2.push_back(bu_temp);
+										boss_bullet3.push_back(bu_temp);
+									}
+								}
+								boss.numOfbullet++;
+
+								enemy_bug_shoot_sound->Reset();
+								enemy_bug_shoot_sound->Play();
+							}
+						}
+						else if (GetTickCount() - enemy_start_shoot >= 3000)
+						{
+							boss.numOfbullet = 0;
+						}
+					}
+
+					if (boss.BossCurPos < 10 && !boss.isBossMoving)
+					{
+						if (++boss.animcount > boss.animdelay)
+						{
+							boss.animcount = 0;
+							if (++boss.curframe > boss.lastframe)
+							{
+								SPRITE boss_temp;
+								boss_temp.x = boss.x;
+								boss_temp.y = boss.y;
+								boss_temp.width = boss.width;
+								boss_temp.height = boss.height;
+								boss_clone.push_back(boss_temp);
+
+								boss.x = bossX[boss.BossCurPos];
+								boss.y = bossY[boss.BossCurPos];
+								boss.BossCurPos++;
+
+								boss.isBossMoving = true;
+								boss.curframe = 0;
+							}
+						}
+					}
+				}
+
+				// Boss Explode
+				if (boss.hp < 0)
+				{
+					if (boss_die_sound->IsSoundPlaying())
+					{
+						for (int i = 0; i < boss_explosion.size(); i++)
+						{
+							if (++boss_explosion[i].animcount > boss_explosion[i].animdelay)
+							{
+								boss_explosion[i].animcount = 0;
+								if (++boss_explosion[i].curframe > boss_explosion[i].lastframe)
+									boss_explosion[i].curframe = 0;
+							}
+						}
+
+					}
+					else
+					{
+						jasonVSboss = false;
+						boss.x = 0;
+						boss.y = 0;
+					}
+				}
+				for (int i = 0; i < boss_explosion2.size(); i++)
+				{
+					if (++boss_explosion2[i].animcount > boss_explosion2[i].animdelay)
+					{
+						boss_explosion2[i].animcount = 0;
+						if (++boss_explosion2[i].curframe > boss_explosion2[i].lastframe)
+							boss_explosion2.erase(boss_explosion2.begin() + i);
+					}
+				}
+
+				// jason collide with boss
+				for (int i = 0; i < boss_clone.size(); i++)
+				{
+					if (jason.Jason_collide(boss_clone[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+						jason.hp--;
+						jason.isDamaged = true;
+
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
+				if (jason.Jason_collide(boss) && GetTickCount() - char_start_get_hit >= 1000)
+				{
+					char_start_get_hit = GetTickCount();
+					jason.hp--;
+					jason.isDamaged = true;
+
+					big_jason_got_hit_sound->Reset();
+					big_jason_got_hit_sound->Play();
+				}
+				for (int i = 0; i < boss_bullet1.size(); i++)
+				{
+					if (jason.Bullet_collide(boss_bullet1[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+
+						jason.hp--;
+						jason.isDamaged = true;
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
+				for (int i = 0; i < boss_bullet2.size(); i++)
+				{
+					if (jason.Bullet_collide(boss_bullet2[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+
+						jason.hp--;
+						jason.isDamaged = true;
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
+				for (int i = 0; i < boss_bullet3.size(); i++)
+				{
+					if (jason.Bullet_collide(boss_bullet3[i]) && GetTickCount() - char_start_get_hit >= 1000)
+					{
+						char_start_get_hit = GetTickCount();
+
+						jason.hp--;
+						jason.isDamaged = true;
+						big_jason_got_hit_sound->Reset();
+						big_jason_got_hit_sound->Play();
+					}
+				}
 			}
 
-			/////////////////////////////////
 #pragma endregion
-
 		}
 		else if (mapid == 1 || mapid == 2 || mapid == 4)
 		{
 #pragma region Update Sophia and Cam
 			// Sophia alive
-			if (sophia.hp > 0 && player == 1)
+			if (sophia.hp > 0 && player == 1 && !openingCabin)
 			{
 				// Sophia Jump
 				if (map_info.sophia_collide_down(sophia))
@@ -2047,23 +2810,21 @@ void Game_Run(HWND hwnd)
 					sophia_bullet[i].y += sophia_bullet[i].movey;
 				}
 
+				// heal for sophia
+				if (KEY_DOWN(0x58))
+				{
+					sophia.hp = 8;
+				}
+
 				// small jason go out
 				if (KEY_DOWN(VK_RSHIFT))
 				{
-					// small jason
-					player = 0;
+					openingCabin = true;
 
-					small_jason.x = sophia.x + 16;
-					small_jason.y = sophia.y;
-					small_jason.width = 16;
-					small_jason.height = 32;
-					small_jason.curframe = 0;
-					small_jason.lastframe = 3;
-					small_jason.animdelay = 2;
-					small_jason.animcount = 0;
-					small_jason.movex = 0;
-					small_jason.movey = 0;
-					small_jason.direction = 6;
+					if (sophia.direction == 4)
+						sophia.bodycurframe = 6;
+					else if (sophia.direction == 6)
+						sophia.bodycurframe = 8;
 
 					swap_player_sound->Reset();
 					swap_player_sound->Play();
@@ -2182,6 +2943,7 @@ void Game_Run(HWND hwnd)
 				if (KEY_DOWN(VK_UP) && KEY_DOWN(VK_LEFT))
 				{
 					sophia.move_left_up();
+					sophia.bodycurframe = 4;
 
 					if (!map_info.sophia_collide_left(sophia) && sophia.x > 0)
 					{
@@ -2196,7 +2958,7 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_UP) && KEY_DOWN(VK_RIGHT))
 				{
 					sophia.move_right_up();
-
+					sophia.bodycurframe = 5;
 					if (!map_info.sophia_collide_right(sophia) && sophia.x < map_info.width && sophia.x < map_info.width - 64)
 					{
 						sophia.x += sophia.movex;
@@ -2226,6 +2988,7 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_LEFT))
 				{
 					sophia.move_left();
+					sophia.bodycurframe = 0;
 
 					if (!map_info.sophia_collide_left(sophia) && sophia.x > 0)
 					{
@@ -2240,6 +3003,7 @@ void Game_Run(HWND hwnd)
 				else if (KEY_DOWN(VK_RIGHT))
 				{
 					sophia.move_right();
+					sophia.bodycurframe = 3;
 
 					if (!map_info.sophia_collide_right(sophia) && sophia.x < map_info.width - 64)
 					{
@@ -2255,6 +3019,19 @@ void Game_Run(HWND hwnd)
 				{
 					sophia.movex = 0;
 				}
+
+				// jason flashing effect
+				if (sophia.isDamaged)
+				{
+					if (++flashing_anicount > flashing_anidelay)
+					{
+						flashing_anicount = 0;
+						if (++flashing_color_index > 8)
+							flashing_color_index = 0;
+					}
+				}
+				if (sophia.isDamaged && GetTickCount() - char_start_get_hit >= 400)
+					sophia.isDamaged = false;
 
 				// update sophia frame
 				if (++sophia.animcount > sophia.animdelay)
@@ -2311,6 +3088,7 @@ void Game_Run(HWND hwnd)
 			// small jason
 			else if (sophia.hp > 0 && player == 0)
 			{
+				// small jason jump
 				if (map_info.sophia_collide_down(small_jason))
 				{
 					small_jason.movey = 0;
@@ -2322,6 +3100,7 @@ void Game_Run(HWND hwnd)
 						small_jason_jump_sound->Play();
 					}
 				}
+				// small jason bounce top
 				else if (map_info.sophia_collide_up(small_jason))
 				{
 					small_jason.movey = 6;
@@ -2335,6 +3114,7 @@ void Game_Run(HWND hwnd)
 				}
 				small_jason.y += small_jason.movey;
 
+				// update cam
 				if (small_jason.movey > 0)
 				{
 					if (cam.y < map_info.height - SCREEN_HEIGHT - 16 && (small_jason.y - cam.y) > SCREEN_HEIGHT / 2)
@@ -2346,6 +3126,7 @@ void Game_Run(HWND hwnd)
 						cam.y += small_jason.movey;
 				}
 
+				// jason get in sophia
 				if (small_jason.small_jason_collide_sophia(sophia))
 				{
 					if (KEY_DOWN(VK_LSHIFT))
@@ -2356,7 +3137,6 @@ void Game_Run(HWND hwnd)
 						swap_player_sound->Play();
 					}
 				}
-
 
 				if (KEY_DOWN(VK_LEFT))
 				{
@@ -2387,6 +3167,7 @@ void Game_Run(HWND hwnd)
 					small_jason.movex = 0;
 				}
 
+				// update small jason frame
 				if (++small_jason.animcount > small_jason.animdelay)
 				{
 					small_jason.animcount = 0;
@@ -2431,6 +3212,61 @@ void Game_Run(HWND hwnd)
 					}
 				}
 			}
+
+			// open cabin frame
+			if (player == 1 && openingCabin)
+			{
+				if (++sophia.animcount > 5)
+				{
+					sophia.animcount = 0;
+					if (sophia.direction == 4)
+					{
+						if (++sophia.bodycurframe > 7)
+						{
+							sophia.bodycurframe = 0;
+
+							player = 0;
+							small_jason.x = sophia.x + 16;
+							small_jason.y = sophia.y;
+							small_jason.width = 16;
+							small_jason.height = 32;
+							small_jason.curframe = 0;
+							small_jason.lastframe = 3;
+							small_jason.animdelay = 2;
+							small_jason.animcount = 0;
+							small_jason.movex = 0;
+							small_jason.movey = 0;
+							small_jason.direction = 6;
+
+							openingCabin = false;
+						}
+					}
+					else if (sophia.direction == 6)
+					{
+						if (++sophia.bodycurframe > 9)
+						{
+							sophia.bodycurframe = 3;
+
+							player = 0;
+							small_jason.x = sophia.x + 16;
+							small_jason.y = sophia.y;
+							small_jason.width = 16;
+							small_jason.height = 32;
+							small_jason.curframe = 0;
+							small_jason.lastframe = 3;
+							small_jason.animdelay = 2;
+							small_jason.animcount = 0;
+							small_jason.movex = 0;
+							small_jason.movey = 0;
+							small_jason.direction = 6;
+
+							openingCabin = false;
+						}
+					}
+				}
+
+			}
+
 #pragma endregion
 		}
 
@@ -2438,7 +3274,7 @@ void Game_Run(HWND hwnd)
 		{
 #pragma region Update Enemy Area3 Scene1, Tele1
 
-			// Tele
+			// Tele1
 			if (map_info.sophia_collide_tele1(sophia))
 			{
 				map_info = map_area3_scene2;
@@ -2452,6 +3288,20 @@ void Game_Run(HWND hwnd)
 
 			for (int i = 0; i < Area3_Scene1_Enemy.size(); i++)
 			{
+				// enemy flashing effect
+				if (Area3_Scene1_Enemy[i].isDamaged)
+				{
+					if (++flashing_anicount > flashing_anidelay)
+					{
+						flashing_anicount = 0;
+						if (++flashing_color_index > 8)
+							flashing_color_index = 0;
+					}
+				}
+				if (Area3_Scene1_Enemy[i].isDamaged && GetTickCount() - enemy_start_get_hit >= 400)
+					Area3_Scene1_Enemy[i].isDamaged = false;
+
+				// Update enemy frame
 				if (Area3_Scene1_Enemy[i].id == 0)
 					if (++Area3_Scene1_Enemy[i].animcount > Area3_Scene1_Enemy[i].animdelay)
 					{
@@ -2465,6 +3315,7 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
+					sophia.isDamaged = true;
 
 					sophia_got_hit_sound->Stop();
 					sophia_got_hit_sound->Reset();
@@ -2528,14 +3379,16 @@ void Game_Run(HWND hwnd)
 				// enemy get hit by sophia bullet
 				for (int j = 0; j < sophia_bullet.size(); j++)
 				{
-					if (Area3_Scene1_Enemy[i].Bullet_collide(sophia_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 30)
+					if (Area3_Scene1_Enemy[i].Bullet_collide(sophia_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 50)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Area3_Scene1_Enemy[i].hp--;
+						Area3_Scene1_Enemy[i].isDamaged = true;
 
 						enemy_got_hit_sound->Reset();
 						enemy_got_hit_sound->Play();
 
+						// enemy die
 						if (Area3_Scene1_Enemy[i].hp == 0)
 						{
 							SPRITE ex_temp;
@@ -2558,12 +3411,12 @@ void Game_Run(HWND hwnd)
 								item_temp.height = 32;
 								items_area3_scene1.push_back(item_temp);
 							}
-
 							Area3_Scene1_Enemy.erase(Area3_Scene1_Enemy.begin() + i);
 
 							enemy_die_sound->Reset();
 							enemy_die_sound->Play();
 						}
+
 						sophia_bullet.erase(sophia_bullet.begin() + j);
 						break;
 					}
@@ -2577,6 +3430,7 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
+					sophia.isDamaged = true;
 				}
 
 				if (map_info.enemy_collide_down(enemy_drop_bullet[i]))
@@ -2593,7 +3447,7 @@ void Game_Run(HWND hwnd)
 					temp.image[0] = enemy_worm_red_image[0];
 					temp.image[1] = enemy_worm_red_image[1];
 					temp.isDraw = true;
-					temp.hp = 2;
+					temp.hp = 3;
 					Area3_Scene1_Enemy.push_back(temp);
 
 					enemy_drop_bullet.erase(enemy_drop_bullet.begin() + i);
@@ -2632,6 +3486,7 @@ void Game_Run(HWND hwnd)
 				{
 					char_start_get_hit = GetTickCount();
 					sophia.hp -= 1;
+					sophia.isDamaged = true;
 
 					sophia_got_hit_sound->Stop();
 					sophia_got_hit_sound->Reset();
@@ -2641,10 +3496,11 @@ void Game_Run(HWND hwnd)
 				// sophia bullet hit enemy
 				for (int j = 0; j < sophia_bullet.size(); j++)
 				{
-					if (Area3_Scene2_Enemy[i].Bullet_collide(sophia_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 30)
+					if (Area3_Scene2_Enemy[i].Bullet_collide(sophia_bullet[j]) && GetTickCount() - enemy_start_get_hit >= 50)
 					{
 						enemy_start_get_hit = GetTickCount();
 						Area3_Scene2_Enemy[i].hp--;
+						Area3_Scene2_Enemy[i].isDamaged = true;
 
 						enemy_got_hit_sound->Reset();
 						enemy_got_hit_sound->Play();
@@ -2686,6 +3542,20 @@ void Game_Run(HWND hwnd)
 
 			for (int i = 0; i < Area3_Scene2_Enemy.size(); i++)
 			{
+				// enemy flashing effect
+				if (Area3_Scene2_Enemy[i].isDamaged)
+				{
+					if (++flashing_anicount > flashing_anidelay)
+					{
+						flashing_anicount = 0;
+						if (++flashing_color_index > 8)
+							flashing_color_index = 0;
+					}
+				}
+				if (Area3_Scene2_Enemy[i].isDamaged && GetTickCount() - enemy_start_get_hit >= 400)
+					Area3_Scene2_Enemy[i].isDamaged = false;
+
+				// Update enemy frame
 				if (++Area3_Scene2_Enemy[i].animcount > Area3_Scene2_Enemy[i].animdelay)
 				{
 					Area3_Scene2_Enemy[i].animcount = 0;
@@ -2937,77 +3807,156 @@ void Game_Run(HWND hwnd)
 			{
 				D3DXVECTOR3 position2((float)jason.x - cam.x, (float)jason.y - cam.y, 0);
 
-				// player moving
-				if (jason.movex != 0 || jason.movey != 0)
+				if (jason.isDamaged)
 				{
+					// player moving
+					if (jason.movex != 0 || jason.movey != 0)
+					{
 
-					if (jason.direction == 6)
-						sprite_handler->Draw(
-							jason_image_right[jason.curframe],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 6)
+							sprite_handler->Draw(
+								jason_image_right[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
 
-					if (jason.direction == 4)
-						sprite_handler->Draw(
-							jason_image_left[jason.curframe],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 4)
+							sprite_handler->Draw(
+								jason_image_left[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
 
-					if (jason.direction == 8)
-						sprite_handler->Draw(
-							jason_image_up[jason.curframe],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 8)
+							sprite_handler->Draw(
+								jason_image_up[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
 
-					if (jason.direction == 2)
-						sprite_handler->Draw(
-							jason_image_down[jason.curframe],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 2)
+							sprite_handler->Draw(
+								jason_image_down[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					//player stop
+					else
+					{
+						if (jason.direction == 6)
+							sprite_handler->Draw(
+								jason_image_right[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+
+						if (jason.direction == 4)
+							sprite_handler->Draw(
+								jason_image_left[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+
+						if (jason.direction == 8)
+							sprite_handler->Draw(
+								jason_image_up[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+
+						if (jason.direction == 2)
+							sprite_handler->Draw(
+								jason_image_down[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
 				}
-				else //player stop
+				else
 				{
-					if (jason.direction == 6)
-						sprite_handler->Draw(
-							jason_image_right[1],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+					// player moving
+					if (jason.movex != 0 || jason.movey != 0)
+					{
 
-					if (jason.direction == 4)
-						sprite_handler->Draw(
-							jason_image_left[1],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 6)
+							sprite_handler->Draw(
+								jason_image_right[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
 
-					if (jason.direction == 8)
-						sprite_handler->Draw(
-							jason_image_up[1],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 4)
+							sprite_handler->Draw(
+								jason_image_left[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
 
-					if (jason.direction == 2)
-						sprite_handler->Draw(
-							jason_image_down[1],
-							NULL,
-							NULL,
-							&position2,
-							D3DCOLOR_XRGB(255, 255, 255));
+						if (jason.direction == 8)
+							sprite_handler->Draw(
+								jason_image_up[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+
+						if (jason.direction == 2)
+							sprite_handler->Draw(
+								jason_image_down[jason.curframe],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+					}
+					// player stop
+					else
+					{
+						if (jason.direction == 6)
+							sprite_handler->Draw(
+								jason_image_right[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+
+						if (jason.direction == 4)
+							sprite_handler->Draw(
+								jason_image_left[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+
+						if (jason.direction == 8)
+							sprite_handler->Draw(
+								jason_image_up[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+
+						if (jason.direction == 2)
+							sprite_handler->Draw(
+								jason_image_down[1],
+								NULL,
+								NULL,
+								&position2,
+								D3DCOLOR_XRGB(255, 255, 255));
+					}
 				}
 
+				// Draw jason bullet and explosion
 				for (int i = 0; i < jason_bullet.size(); i++)
 				{
 					D3DXVECTOR3 positionbullet((float)jason_bullet[i].x - cam.x, (float)jason_bullet[i].y - cam.y, 0);
@@ -3017,7 +3966,6 @@ void Game_Run(HWND hwnd)
 						&positionbullet,
 						D3DCOLOR_XRGB(255, 255, 255));
 				}
-
 				for (int i = 0; i < explosion.size(); i++)
 				{
 					D3DXVECTOR3 positionexplosion((float)explosion[i].x - cam.x, (float)explosion[i].y - cam.y, 0);
@@ -3058,13 +4006,26 @@ void Game_Run(HWND hwnd)
 
 			for (int i = 0; i < Dungeon_Enemy.size(); i++)
 			{
-				D3DXVECTOR3 position3((float)Dungeon_Enemy[i].x - cam.x, (float)Dungeon_Enemy[i].y - cam.y, 0);
-				sprite_handler->Draw(
-					Dungeon_Enemy[i].image[Dungeon_Enemy[i].curframe],
-					NULL,
-					NULL,
-					&position3,
-					D3DCOLOR_XRGB(255, 255, 255));
+				if (Dungeon_Enemy[i].isDamaged)
+				{
+					D3DXVECTOR3 position3((float)Dungeon_Enemy[i].x - cam.x, (float)Dungeon_Enemy[i].y - cam.y, 0);
+					sprite_handler->Draw(
+						Dungeon_Enemy[i].image[Dungeon_Enemy[i].curframe],
+						NULL,
+						NULL,
+						&position3,
+						D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+				}
+				else
+				{
+					D3DXVECTOR3 position3((float)Dungeon_Enemy[i].x - cam.x, (float)Dungeon_Enemy[i].y - cam.y, 0);
+					sprite_handler->Draw(
+						Dungeon_Enemy[i].image[Dungeon_Enemy[i].curframe],
+						NULL,
+						NULL,
+						&position3,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
 			}
 
 			for (int i = 0; i < dungeon_enemy_explosion.size(); i++)
@@ -3101,105 +4062,306 @@ void Game_Run(HWND hwnd)
 
 #pragma region Draw BOSS
 
-			////////////////////
+			if (jasonVSboss)
+			{
+				// Draw boss
+				if (boss.isDamaged)
+				{
+					D3DXVECTOR3 positionboss((float)boss.x - cam.x, (float)boss.y - cam.y, 0);
+					sprite_handler->Draw(
+						boss_image[boss.curframe],
+						NULL,
+						NULL,
+						&positionboss,
+						D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+				}
+				else
+				{
+					D3DXVECTOR3 positionboss((float)boss.x - cam.x, (float)boss.y - cam.y, 0);
+					sprite_handler->Draw(
+						boss_image[boss.curframe],
+						NULL,
+						NULL,
+						&positionboss,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+
+				// Draw boss clone
+				for (int i = 0; i < boss_clone.size(); i++)
+				{
+					D3DXVECTOR3 positionbossclone((float)boss_clone[i].x - cam.x, (float)boss_clone[i].y - cam.y, 0);
+					sprite_handler->Draw(
+						boss_clone_image,
+						NULL,
+						NULL,
+						&positionbossclone,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+
+				// Draw boss bullet
+				for (int i = 0; i < boss_bullet1.size(); i++)
+				{
+					if (boss_bullet1[i].direction == 4 || boss_bullet1[i].direction == 6)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet1[i].x - cam.x, (float)boss_bullet1[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[0],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					else if (boss_bullet1[i].direction == 2 || boss_bullet1[i].direction == 8)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet1[i].x - cam.x, (float)boss_bullet1[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[1],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
 
 
+				}
+				for (int i = 0; i < boss_bullet2.size(); i++)
+				{
+					if (boss_bullet2[i].direction == 4 || boss_bullet2[i].direction == 6)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet2[i].x - cam.x, (float)boss_bullet2[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[3],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					else if (boss_bullet2[i].direction == 2 || boss_bullet2[i].direction == 8)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet2[i].x - cam.x, (float)boss_bullet2[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[2],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+				}
+				for (int i = 0; i < boss_bullet3.size(); i++)
+				{
+					if (boss_bullet3[i].direction == 4 || boss_bullet3[i].direction == 6)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet3[i].x - cam.x, (float)boss_bullet3[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[2],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					else if (boss_bullet3[i].direction == 2 || boss_bullet3[i].direction == 8)
+					{
+						D3DXVECTOR3 positionbossbullet((float)boss_bullet3[i].x - cam.x, (float)boss_bullet3[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							boss_bullet_image[3],
+							NULL,
+							NULL,
+							&positionbossbullet,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+				}
 
-			////////////////////
+				// Draw boss explode
+				if (boss.hp < 0)
+				{
+					for (int i = 0; i < boss_explosion.size(); i++)
+					{
+						D3DXVECTOR3 positionbossexp((float)boss_explosion[i].x - cam.x, (float)boss_explosion[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							dungeon_enemy_explosion_image[boss_explosion[i].curframe],
+							NULL,
+							NULL,
+							&positionbossexp,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+				}
+				for (int i = 0; i < boss_explosion2.size(); i++)
+				{
+					D3DXVECTOR3 positionbossexp((float)boss_explosion2[i].x - cam.x, (float)boss_explosion2[i].y - cam.y, 0);
+					sprite_handler->Draw(
+						dungeon_enemy_explosion_image[boss_explosion2[i].curframe],
+						NULL,
+						NULL,
+						&positionbossexp,
+						D3DCOLOR_XRGB(255, 255, 255));
+				}
+			}
 
 #pragma endregion
-
 		}
 		else if (mapid == 1 || mapid == 2 || mapid == 4)
 		{
 #pragma region Draw Sophia
 			if (sophia.hp > 0)
 			{
-				D3DXVECTOR3 position1((float)sophia.body_x - cam.x, (float)sophia.body_y - cam.y, 0);
 				D3DXVECTOR3 position2((float)sophia.wheelleft_x - cam.x, (float)sophia.wheelleft_y - cam.y, 0);
 				D3DXVECTOR3 position3((float)sophia.wheelright_x - cam.x, (float)sophia.wheelright_y - cam.y, 0);
 				D3DXVECTOR3 position4((float)sophia.midwheel_x - cam.x, (float)sophia.midwheel_y - cam.y, 0);
 				D3DXVECTOR3 position5((float)sophia.gun_x - cam.x, (float)sophia.gun_y - cam.y, 0);
 
-				if (sophia.direction == 68)
+				// Draw sophia
+				if (sophia.isDamaged)
 				{
-					sprite_handler->Draw(
-						sophia_body_image[5],
-						NULL,
-						NULL,
-						&position1,
-						D3DCOLOR_XRGB(255, 255, 255));
+					if (sophia.bodycurframe >= 6)
+					{
+						D3DXVECTOR3 position1((float)sophia.body_x - cam.x, (float)sophia.body_y - 16 - cam.y, 0);
+						sprite_handler->Draw(
+							sophia_body_image[sophia.bodycurframe],
+							NULL,
+							NULL,
+							&position1,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					else
+					{
+						D3DXVECTOR3 position1((float)sophia.body_x - cam.x, (float)sophia.body_y - cam.y, 0);
+						sprite_handler->Draw(
+							sophia_body_image[sophia.bodycurframe],
+							NULL,
+							NULL,
+							&position1,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+
+					if (sophia.direction == 68)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[2],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					if (sophia.direction == 48)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[2],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					if (sophia.direction == 6)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[4],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					if (sophia.direction == 4)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[0],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
 
 					sprite_handler->Draw(
-						sophia_gun_image[2],
-						NULL,
-						NULL,
-						&position5,
-						D3DCOLOR_XRGB(255, 255, 255));
-				}
-				if (sophia.direction == 48)
-				{
+						sophia_wheel_image[sophia.wheelcurframe],
+						NULL, NULL,
+						&position2,
+						D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
 					sprite_handler->Draw(
-						sophia_body_image[4],
-						NULL,
-						NULL,
-						&position1,
-						D3DCOLOR_XRGB(255, 255, 255));
+						sophia_wheel_image[sophia.wheelcurframe],
+						NULL, NULL,
+						&position3,
+						D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					sprite_handler->Draw(
+						sophia_mid_wheel_image,
+						NULL, NULL,
+						&position4,
+						D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+				}
+				else
+				{
+					if (sophia.bodycurframe >= 6)
+					{
+						D3DXVECTOR3 position1((float)sophia.body_x - cam.x, (float)sophia.body_y - 16 - cam.y, 0);
+						sprite_handler->Draw(
+							sophia_body_image[sophia.bodycurframe],
+							NULL,
+							NULL,
+							&position1,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					else
+					{
+						D3DXVECTOR3 position1((float)sophia.body_x - cam.x, (float)sophia.body_y - cam.y, 0);
+						sprite_handler->Draw(
+							sophia_body_image[sophia.bodycurframe],
+							NULL,
+							NULL,
+							&position1,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+
+					if (sophia.direction == 68)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[2],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					if (sophia.direction == 48)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[2],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					if (sophia.direction == 6)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[4],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					if (sophia.direction == 4)
+					{
+						sprite_handler->Draw(
+							sophia_gun_image[0],
+							NULL,
+							NULL,
+							&position5,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
 
 					sprite_handler->Draw(
-						sophia_gun_image[2],
-						NULL,
-						NULL,
-						&position5,
+						sophia_wheel_image[sophia.wheelcurframe],
+						NULL, NULL,
+						&position2,
+						D3DCOLOR_XRGB(255, 255, 255));
+					sprite_handler->Draw(
+						sophia_wheel_image[sophia.wheelcurframe],
+						NULL, NULL,
+						&position3,
+						D3DCOLOR_XRGB(255, 255, 255));
+					sprite_handler->Draw(
+						sophia_mid_wheel_image,
+						NULL, NULL,
+						&position4,
 						D3DCOLOR_XRGB(255, 255, 255));
 				}
-				if (sophia.direction == 6)
-				{
-					sprite_handler->Draw(
-						sophia_body_image[3],
-						NULL,
-						NULL,
-						&position1,
-						D3DCOLOR_XRGB(255, 255, 255));
-
-					sprite_handler->Draw(
-						sophia_gun_image[4],
-						NULL,
-						NULL,
-						&position5,
-						D3DCOLOR_XRGB(255, 255, 255));
-				}
-				if (sophia.direction == 4)
-				{
-					sprite_handler->Draw(
-						sophia_body_image[0],
-						NULL,
-						NULL,
-						&position1,
-						D3DCOLOR_XRGB(255, 255, 255));
-					sprite_handler->Draw(
-						sophia_gun_image[0],
-						NULL,
-						NULL,
-						&position5,
-						D3DCOLOR_XRGB(255, 255, 255));
-				}
-
-				sprite_handler->Draw(
-					sophia_wheel_image[sophia.wheelcurframe],
-					NULL, NULL,
-					&position2,
-					D3DCOLOR_XRGB(255, 255, 255));
-				sprite_handler->Draw(
-					sophia_wheel_image[sophia.wheelcurframe],
-					NULL, NULL,
-					&position3,
-					D3DCOLOR_XRGB(255, 255, 255));
-				sprite_handler->Draw(
-					sophia_mid_wheel_image,
-					NULL, NULL,
-					&position4,
-					D3DCOLOR_XRGB(255, 255, 255));
 
 				// Draw sophia bullet
 				for (int i = 0; i < sophia_bullet.size(); i++)
@@ -3222,8 +4384,6 @@ void Game_Run(HWND hwnd)
 						&positionexplosion,
 						D3DCOLOR_XRGB(255, 255, 255));
 				}
-
-
 			}
 			else
 			{
@@ -3259,7 +4419,6 @@ void Game_Run(HWND hwnd)
 						&positionsmj,
 						D3DCOLOR_XRGB(255, 255, 255));
 				}
-
 			}
 #pragma endregion
 		}
@@ -3279,17 +4438,32 @@ void Game_Run(HWND hwnd)
 					D3DCOLOR_XRGB(255, 255, 255));
 			}
 
+			// Draw enemy
 			for (int i = 0; i < Area3_Scene1_Enemy.size(); i++)
 			{
 				if (Area3_Scene1_Enemy[i].isDraw == true)
 				{
-					D3DXVECTOR3 position6((float)Area3_Scene1_Enemy[i].x - cam.x, (float)Area3_Scene1_Enemy[i].y - cam.y, 0);
-					sprite_handler->Draw(
-						Area3_Scene1_Enemy[i].image[Area3_Scene1_Enemy[i].curframe],
-						NULL,
-						NULL,
-						&position6,
-						D3DCOLOR_XRGB(255, 255, 255));
+					if (Area3_Scene1_Enemy[i].isDamaged)
+					{
+						D3DXVECTOR3 position6((float)Area3_Scene1_Enemy[i].x - cam.x, (float)Area3_Scene1_Enemy[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							Area3_Scene1_Enemy[i].image[Area3_Scene1_Enemy[i].curframe],
+							NULL,
+							NULL,
+							&position6,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					else
+					{
+						D3DXVECTOR3 position6((float)Area3_Scene1_Enemy[i].x - cam.x, (float)Area3_Scene1_Enemy[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							Area3_Scene1_Enemy[i].image[Area3_Scene1_Enemy[i].curframe],
+							NULL,
+							NULL,
+							&position6,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					
 				}
 			}
 
@@ -3323,13 +4497,27 @@ void Game_Run(HWND hwnd)
 			{
 				if (Area3_Scene2_Enemy[i].isDraw == true)
 				{
-					D3DXVECTOR3 position6((float)Area3_Scene2_Enemy[i].x - cam.x, (float)Area3_Scene2_Enemy[i].y - cam.y, 0);
-					sprite_handler->Draw(
-						Area3_Scene2_Enemy[i].image[Area3_Scene2_Enemy[i].curframe],
-						NULL,
-						NULL,
-						&position6,
-						D3DCOLOR_XRGB(255, 255, 255));
+					if (Area3_Scene2_Enemy[i].isDamaged)
+					{
+						D3DXVECTOR3 position6((float)Area3_Scene2_Enemy[i].x - cam.x, (float)Area3_Scene2_Enemy[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							Area3_Scene2_Enemy[i].image[Area3_Scene2_Enemy[i].curframe],
+							NULL,
+							NULL,
+							&position6,
+							D3DCOLOR_XRGB(flashing_color_r[flashing_color_index], flashing_color_g[flashing_color_index], flashing_color_b[flashing_color_index]));
+					}
+					else
+					{
+						D3DXVECTOR3 position6((float)Area3_Scene2_Enemy[i].x - cam.x, (float)Area3_Scene2_Enemy[i].y - cam.y, 0);
+						sprite_handler->Draw(
+							Area3_Scene2_Enemy[i].image[Area3_Scene2_Enemy[i].curframe],
+							NULL,
+							NULL,
+							&position6,
+							D3DCOLOR_XRGB(255, 255, 255));
+					}
+					
 				}
 			}
 #pragma endregion
@@ -3446,7 +4634,7 @@ void Game_Run(HWND hwnd)
 
 		d3ddev->StretchRect(map_info.image[map_info.matrix[(SCREEN_HEIGHT + cam.y) / TILE_SIZE][j] - 1],
 			&rect_src, backbuffer, &rect_des, D3DTEXF_NONE);
-#pragma endregion
+
 
 		//////////// DRAW BOSS MAP
 
@@ -3454,9 +4642,45 @@ void Game_Run(HWND hwnd)
 		{
 			d3ddev->Clear(0, NULL, D3DCLEAR_TARGET,
 				D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+
+			for (int i = 16; i < 32; i = i + 2)
+			{
+				D3DXVECTOR3 positiontileboss1((float)32 * i - cam.x, (float)32 * 65 - cam.y, 0);
+				sprite_handler->Draw(
+					boss_tile,
+					NULL, NULL,
+					&positiontileboss1,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontileboss2((float)32 * i - cam.x, (float)32 * 79 - cam.y, 0);
+				sprite_handler->Draw(
+					boss_tile,
+					NULL, NULL,
+					&positiontileboss2,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
+
+			for (int j = 67; j < 79; j = j + 2)
+			{
+				D3DXVECTOR3 positiontileboss1((float)32 * 16 - cam.x, (float)32 * j - cam.y, 0);
+				sprite_handler->Draw(
+					boss_tile,
+					NULL, NULL,
+					&positiontileboss1,
+					D3DCOLOR_XRGB(255, 255, 255));
+
+				D3DXVECTOR3 positiontileboss2((float)32 * 30 - cam.x, (float)32 * j - cam.y, 0);
+				sprite_handler->Draw(
+					boss_tile,
+					NULL, NULL,
+					&positiontileboss2,
+					D3DCOLOR_XRGB(255, 255, 255));
+			}
 		}
 
 		////////////////////////////
+#pragma endregion
+
 #pragma region Draw Map cover player
 
 		if (mapid == 1)

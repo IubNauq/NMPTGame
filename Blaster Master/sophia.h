@@ -21,6 +21,9 @@ public:
 	int body_x, body_y;
 
 	int wheelcurframe, wheellastframe;
+	int bodycurframe;
+
+	bool isDamaged = false;
 
 	void Update_wheel();
 	void Update_body();

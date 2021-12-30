@@ -23,7 +23,14 @@ public:
 	bool isActivate = false;
 	int hp = 1;
 
-	bool isFire;
+	bool isFire; // drop enemy
+
+	// Boss
+	int BossCurPos = 0;
+	bool isBossMoving = false;
+	bool canHit = false;
+	int numOfbullet = 0;
+	bool isDamaged = false;
 
 	LPDIRECT3DTEXTURE9 image[5];
 
